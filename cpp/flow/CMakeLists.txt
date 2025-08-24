@@ -8,6 +8,7 @@ koala_add_module(flow
     BoykovKolmogorovMaximumFlow.cpp
     MinimumCostFlow.cpp
     minimum_cost_flow/SuccessiveApproxMCC.cpp
+    minimum_cost_flow/OrlinMCF.cpp
     
     # Electrical Flow
     ElectricalFlow.cpp
