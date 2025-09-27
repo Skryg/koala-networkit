@@ -51,7 +51,7 @@ NetworKit::Graph create_graph(const std::string &format) {
 
 
 void read_edge(std::ifstream &graphFile, NetworKit::Graph &graph,
-    std::map<NetworKit::edgeid, int> &costs, const std::string &format) {
+    std::map<NetworKit::edgeid, long long> &costs, const std::string &format) {
     NetworKit::node u = 0, v = 0;
     NetworKit::edgeweight w = 0;
     NetworKit::edgeid id;
@@ -65,7 +65,7 @@ void read_edge(std::ifstream &graphFile, NetworKit::Graph &graph,
         case Format::min: 
         graphFile >> u >> v >> _ >> w >> cost;
             id = graph.upperEdgeIdBound();
-            graph.addEdge(u, v, w);
+            graph.addEdge(u - 1, v - 1, w);
             costs[id] = cost;
             break;
         case Format::max:
@@ -80,7 +80,7 @@ void read_edge(std::ifstream &graphFile, NetworKit::Graph &graph,
 }
 
 void read_node(std::ifstream &graphFile, NetworKit::Graph &graph,
-        std::map<NetworKit::node, int> &b,
+        std::map<NetworKit::node, long long> &b,
         NetworKit::node &s, 
         NetworKit::node &t, 
         const std::string &format) {
@@ -114,8 +114,8 @@ NetworKit::Graph DimacsGraphReader::read(std::string_view path) {
 }
 
 std::tuple<NetworKit::Graph, 
-        std::map<NetworKit::edgeid, int>,
-        std::map<NetworKit::node, int>, 
+        std::map<NetworKit::edgeid, long long>,
+        std::map<NetworKit::node, long long>, 
         NetworKit::node, NetworKit::node> DimacsGraphReader::read_all_mcf(
         const std::string &path) {
     std::ifstream graphFile(path);
@@ -128,8 +128,8 @@ std::tuple<NetworKit::Graph,
     NetworKit::count nodes = 0, edges = 0;
     NetworKit::node s, t;
     s = t = NetworKit::none;
-    std::map<NetworKit::node, int> b;
-    std::map<NetworKit::edgeid, int> costs;
+    std::map<NetworKit::node, long long> b;
+    std::map<NetworKit::edgeid, long long> costs;
 
     while (true) {
         graphFile >> command;
@@ -172,8 +172,8 @@ std::tuple<NetworKit::Graph, NetworKit::node, NetworKit::node> DimacsGraphReader
 }
 
 std::tuple<NetworKit::Graph,
-        std::map<NetworKit::edgeid, int>,
-        std::map<NetworKit::node, int>> 
+        std::map<NetworKit::edgeid, long long>,
+        std::map<NetworKit::node, long long>> 
         DimacsGraphReader::read_minimum_cost_flow(const std::string &path) {
     auto [graph, costs, b, s, t] = read_all_mcf(path);
     return { graph, costs, b }; 
