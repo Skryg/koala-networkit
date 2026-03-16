@@ -25,7 +25,7 @@ namespace Koala {
         primaryExcess = ex;
     }
     MCFlowNetwork::MCFlowNetwork(Graph const& g, std::unordered_map<node, int64> const& ex,
-        std::unordered_map<Edge, int> cost) : MCFlowNetwork(g, ex) {
+        std::unordered_map<Edge, int64> cost) : MCFlowNetwork(g, ex) {
         cost = cost;
     }
 
@@ -33,13 +33,13 @@ namespace Koala {
         return graph;
     };
 
-    node MCFlowNetwork::addNode(int ex = 0) {
+    node MCFlowNetwork::addNode(int64 ex = 0) {
         node newNode = graph.addNode();
         excess[newNode] = ex;
         return newNode;
     }
 
-    void MCFlowNetwork::addEdge(node s, node t, int cost = 0, int64 capacity = 0) {
+    void MCFlowNetwork::addEdge(node s, node t, int64 cost = 0, int64 capacity = 0) {
         graph.addEdge(s, t, capacity);
         if (graph.isWeighted())
             this->capacity[{s,t}] = capacity;
@@ -77,7 +77,7 @@ namespace Koala {
         return 0;
     }  
 
-    void MCFlowNetwork::setCost(node s, node t, int cost) {
+    void MCFlowNetwork::setCost(node s, node t, int64 cost) {
         this->cost[{s,t}] = cost;
     }
 
@@ -131,6 +131,33 @@ namespace Koala {
                 func(u, v);
             }
         });
+    }
+
+    void MCFlowNetwork::makeConnected() {
+        int64 maxCost{0}; 
+        for (auto [edge, cost] : cost) {
+            maxCost = std::max(maxCost, (int64)std::abs(cost));
+        }
+        
+        maxCost *= graph.numberOfEdges() + 1;
+        
+        int64 sumB{0};
+        for (auto [nd, bval] : primaryExcess) {
+            if (bval > 0) sumB += bval;
+        }
+
+        NetworKit::node sx = graph.addNode();
+        graph.forNodes([&](NetworKit::node u) {
+            if (sx == u) return;
+            auto bound = graph.upperEdgeIdBound();
+            this->cost[{u, sx}] = this->cost[{sx, u}] = maxCost;
+            graph.addEdge(u, sx, sumB);
+            graph.addEdge(sx, u, sumB);
+        });
+    }
+
+    void MCFlowNetwork::makeUncapacitated() {
+        // TODO
     }
 
 } /* namespace Koala */
