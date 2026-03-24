@@ -1,4 +1,4 @@
-#include <minimum_cost_flow/MCFlowNetwork.hpp>
+#include <flow/minimum_cost_flow/MCFlowNetwork.hpp>
 #include <limits>
 
 namespace Koala {

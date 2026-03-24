@@ -10,7 +10,7 @@
 #include <string>
 
 #include <networkit/io/GraphReader.hpp>
-#include <map>
+#include <unordered_map>
 
 namespace Koala {
 
@@ -49,8 +49,8 @@ class DimacsGraphReader final : public NetworKit::GraphReader {
      * @param[out]  the graph read from file, together with source and target nodes
      */
     std::tuple<NetworKit::Graph, 
-        std::map<NetworKit::edgeid, long long>, 
-        std::map<NetworKit::node, long long>,
+        std::unordered_map<NetworKit::Edge, long long>, 
+        std::unordered_map<NetworKit::node, long long>,
         NetworKit::node, NetworKit::node> 
         read_all_mcf(const std::string &path);
 
@@ -58,12 +58,12 @@ class DimacsGraphReader final : public NetworKit::GraphReader {
      * Given the path of an input file, read the graph for minimum cost flow.
      *
      * @param[in]  path  input file path
-     * @param[out]  the graph read from file with indexed edges, 
+     * @param[out]  the graph read from file with edges, 
      *              together with maps mapping edges to costs and nodes to supply/demand
      */
     std::tuple<NetworKit::Graph,
-        std::map<NetworKit::edgeid, long long>, 
-        std::map<NetworKit::node, long long>> 
+        std::unordered_map<NetworKit::Edge, long long>, 
+        std::unordered_map<NetworKit::node, long long>> 
         read_minimum_cost_flow(const std::string &path);
 };
 

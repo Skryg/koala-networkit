@@ -5,7 +5,7 @@
 
 #include <networkit/base/Algorithm.hpp>
 #include <networkit/graph/Graph.hpp>
-#include <minimum_cost_flow/MCFlowNetwork.hpp>
+#include <flow/minimum_cost_flow/MCFlowNetwork.hpp>
 
 namespace Koala {
 
