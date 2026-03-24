@@ -23,7 +23,7 @@ class BaseMCFlowNetwork {
     virtual std::int64_t getExcess(NetworKit::node u) const = 0;
     virtual void setExcess(NetworKit::node u, std::int64_t ex) = 0;
 
-    virtual void forResidualEdgesOf(NetworKit::node u, std::function<void(NetworKit::node, NetworKit::node)> const& func) const;
+    virtual void forResidualEdgesOf(NetworKit::node u, std::function<void(NetworKit::node, NetworKit::node)> const& func) const = 0;
     virtual void makeConnected() = 0;
     virtual void makeUncapacitated() = 0;
 };
