@@ -26,6 +26,8 @@ class BaseMCFlowNetwork {
     virtual void forResidualEdgesOf(NetworKit::node u, std::function<void(NetworKit::node, NetworKit::node)> const& func) const = 0;
     virtual void makeConnected() = 0;
     virtual void makeUncapacitated() = 0;
+    virtual std::int64_t getFlowCost() const = 0;
+    virtual bool isLegalFlow() const = 0;
 };
 
 class MCFlowNetwork : public BaseMCFlowNetwork {
@@ -65,6 +67,8 @@ class MCFlowNetwork : public BaseMCFlowNetwork {
     virtual void forResidualEdgesOf(NetworKit::node u, std::function<void(NetworKit::node, NetworKit::node)> const& func) const override;
     virtual void makeConnected() override;
     virtual void makeUncapacitated() override;
+    virtual std::int64_t getFlowCost() const override;
+    virtual bool isLegalFlow() const override;
 };
 
 }
