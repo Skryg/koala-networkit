@@ -11,7 +11,11 @@ int64 MinimumCostFlow::getFlow(NetworKit::Edge const& e) {
 }
 
 int64 MinimumCostFlow::getMinCost() const {
-    return min_cost;
+    return network.getFlowCost();
+}
+
+MCFlowNetwork const& MinimumCostFlow::getNetwork() const {
+    return network;
 }
 
 // bool MinimumCostFlow::isOk() const {

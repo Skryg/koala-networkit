@@ -26,7 +26,7 @@ namespace Koala {
     }
     MCFlowNetwork::MCFlowNetwork(Graph const& g, std::unordered_map<node, int64> const& ex,
         std::unordered_map<Edge, int64> cost) : MCFlowNetwork(g, ex) {
-        cost = cost;
+        this->cost = cost;
     }
 
     Graph const& MCFlowNetwork::getGraph() const {
@@ -158,6 +158,39 @@ namespace Koala {
 
     void MCFlowNetwork::makeUncapacitated() {
         // TODO
+    }
+
+    int64 MCFlowNetwork::getFlowCost() const {
+        int64 sum{0};
+        graph.forEdges([&](NetworKit::node u, NetworKit::node v) {
+            try {
+                int64 edgeCost = flow.at({u, v}) * cost.at({u, v});
+                sum += edgeCost;
+
+            } catch (const std::out_of_range& e) {}
+        });
+        
+        return sum;
+    }
+
+    bool MCFlowNetwork::isLegalFlow() const {
+        for (auto [node, value] : excess) {
+            if (value != 0) return false;
+        }
+
+        if (!uncapacitated) {
+            bool capacitySatisfied = true;
+            graph.forEdges([&](NetworKit::node u, NetworKit::node v) {
+                try {
+                    if (flow.at({u, v}) > capacity.at({u, v})) 
+                        capacitySatisfied = false;
+                } catch (std::out_of_range const& ex) {}
+            });
+            if (!capacitySatisfied) {
+                return false;
+            }
+        }
+        return true;
     }
 
 } /* namespace Koala */
