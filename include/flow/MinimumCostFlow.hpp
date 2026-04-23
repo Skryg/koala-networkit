@@ -22,11 +22,11 @@ class MinimumCostFlow : public NetworKit::Algorithm {
         run_impl();
         hasRun = true;
     }
-    bool isOk() const;
 
-    std::int64_t getFlow(NetworKit::Edge const&);
-    std::int64_t getMinCost() const;
-    MCFlowNetwork const& getNetwork() const;
+    virtual std::int64_t getFlow(NetworKit::Edge const&) = 0;
+    std::int64_t getMinCost() const {
+        return min_cost;
+    };
     
  protected:
     virtual void run_impl() = 0;

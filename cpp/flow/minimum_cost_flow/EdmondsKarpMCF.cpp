@@ -1,115 +1,161 @@
 #include <flow/minimum_cost_flow/EdmondsKarpMCF.hpp>
 #include <shortest_path/Dijkstra.hpp>
 #include <vector>
+#include <climits>
 
 using node = NetworKit::node;
 using edgeid = NetworKit::edgeid;
 using edgeweight = NetworKit::edgeweight;
-using int64 = std::int64_t;
 
 namespace Koala {
 
 void EdmondsKarpMCF::initialize() {
-    potential.clear();
-    NetworKit::edgeweight maxWeight = 0;
+    auto& graph = network.getGraph();
     network.makeConnected();
-    
-    for (auto edge : network.getGraph().edgeWeightRange()) {
-        maxWeight = std::max(maxWeight, edge.weight);
+    n = graph.upperNodeIdBound();
+
+    excess.assign(n, 0);
+    for (auto [key, value] : network.excess) {
+        excess[key] = value;
     }
-    delta = 1;
-    while (delta < lround(maxWeight)) delta <<= 1;
-}
+    potential.assign(n, 0);
+    edges.assign(graph.numberOfEdges(), Edge());
+    int ptr = 0;
+    
+    neigh_list.assign(n, std::vector<uint32_t>());
+    graph.forNodes([&](node u) { 
+        graph.forNeighborsOf(u, [&](node v) {
+            uint32_t from = static_cast<uint32_t>(u);
+            uint32_t to = static_cast<uint32_t>(v);
+            int64_t cost = network.cost[{u, v}];
+            int64_t capacity = network.capacity[{u, v}];
+            neigh_list[from].push_back(2*ptr);
+            edges[2*ptr] = {
+                from, to,
+                cost, capacity, 0LL
+            };
 
-std::int64_t EdmondsKarpMCF::cp(node u, node v) {
-    return network.getCost(u, v) - potential[u] + potential[v];
-}
-
-void EdmondsKarpMCF::send(node u, node v, int64 value) {
-    network.pushFlow(u, v, value);
-}
-
-NetworKit::Graph EdmondsKarpMCF::getDeltaResidual() {
-    NetworKit::Graph deltaResidual(network.getGraph().numberOfNodes(), true, true);
-    network.getGraph().forEdges([&](node u, node v, edgeweight weight) {
-        long long reducedCost = cp(u, v);
-        int f = network.getFlow(u, v);
-
-        if (f + delta <= lround(weight)) {
-            deltaResidual.addEdge(u, v, reducedCost);
-        }
-        if (f >= delta) {
-            deltaResidual.addEdge(v, u, -reducedCost);
-        }
+            neigh_list[to].push_back(2*ptr+1);
+            edges[2*ptr + 1] = {
+                to, from, 
+                -cost, 0LL, 0LL
+            };
+            ++ptr;
+        });
     });
-    return deltaResidual;
 }
 
-void EdmondsKarpMCF::deltaScalingPhase() {
+std::vector<std::pair<int64_t, uint64_t>> EdmondsKarpMCF::dijkstra(uint32_t source, int64_t delta) {
+    std::set<std::pair<int64_t, uint32_t>> pq;
+    std::vector<std::pair<int64_t, uint64_t>> dist(n, {LLONG_MAX, 0});
+    dist[source] = {0, 0};
+    pq.insert({0, source});
+    std::vector<bool> visited(n, false);
+
+    while (!pq.empty()) {
+        auto [d, u] = *pq.begin();
+        pq.erase(pq.begin());
+
+        if (visited[u]) continue;
+        visited[u] = true;
+
+        for (uint32_t edge_idx : neigh_list[u]) {
+            const Edge& edge = edges[edge_idx];
+            if (edge.capacity >= edge.flow + delta) {
+                int64_t new_dist = d + edge.cost - potential[u] + potential[edge.to];
+                // TODO: Optimize for uncapacitated vertices
+                if (new_dist < dist[edge.to].first) {
+                    pq.erase({dist[edge.to].first, edge.to});
+                    dist[edge.to] = {new_dist, edge_idx};
+                    pq.insert({new_dist, edge.to});
+                }
+            }
+        }
+    }
+
+    return dist;
+}
+
+void EdmondsKarpMCF::send(uint64_t edgeid, int64_t value) {
+    edges[edgeid].flow += value;
+    edges[edgeid^1].flow -= value;
+}
+
+void EdmondsKarpMCF::augmenting_phase(uint32_t s, uint32_t t, uint64_t delta) {
+    auto dist = dijkstra(s, delta);
+
+    uint32_t ptr = t;
+    while (s != ptr) {
+        auto [_, edgeid] = dist[ptr];
+        send(edgeid, delta);
+        ptr = edges[edgeid].from;
+    }
+    excess[t] += delta;
+    excess[s] -= delta;
+
+    for (uint32_t i = 0; i < n; i++) {
+        if (dist[i].first != LLONG_MAX) {
+            potential[i] -= dist[i].first;
+        }
+    }
+}
+
+void EdmondsKarpMCF::delta_scaling_phase(uint64_t delta) {
     NetworKit::Graph const& graph = network.getGraph();
-    graph.forEdges([&](node u, node v, edgeweight weight) {
-        long long f = network.getFlow(u, v);
-
-        if(f >= delta && cp(u, v) > 0) {
-            send(u, v, -f);
+    for (int i = 0; i < edges.size(); ++i) {
+        Edge& edge = edges[i];
+        if (edge.capacity - edge.flow >= delta
+            && edge.cost - potential[edge.from] + potential[edge.to] <= 0) {
+                send(i, delta);
+                excess[edge.from] -= delta;
+                excess[edge.to] += delta;
         }
-        else if (f + delta <= lround(weight) && cp(u, v) < 0){ 
-            send(u, v, lround(weight) - f);
-        }
-    });
+    }
 
-    std::vector<node> S, T;
+    std::stack<node> S, T;
     graph.forNodes([&](node v){
-        int ex = network.getExcess(v);
-        if (ex >= delta) S.push_back(v);
-        else if (ex <= -delta) T.push_back(v);
+        int ex = excess[v];
+        if (ex >= delta) S.push(v);
+        else if (ex <= -delta) T.push(v);
     });
 
     while (!S.empty() && !T.empty()) {
-        auto deltaResidual = getDeltaResidual();
-        node k = S.back();
-        node l = T.back();
+        node k = S.top();
+        node l = T.top();
 
-        // shortest path
-        auto dijkstra = Dijkstra<FibonacciHeap>(deltaResidual, k, true);
-        dijkstra.run();
-        std::vector<node> path = dijkstra.getPath(l);
-        std::vector<double> distances = dijkstra.getDistances();
-        
-        // update potential
-        for(node v : graph.nodeRange()) {
-            potential[v] -= lround(distances[v]);
-        }
-
-        // augment
-        for (int i=0; i<path.size()-1; i++) {
-            node p = path[i], q = path[i+1];
-
-            if (network.getFlow(q, p) >= delta) {
-                send(q, p, -delta);
-            } else {
-                send(p, q, delta);
-            }
-        }
+        augmenting_phase(k, l, delta);
 
         // update S, T
-        if (network.getExcess(k) < delta) S.pop_back();
-        if (network.getExcess(l) > -delta) T.pop_back();
+        if (excess[k] < delta) S.pop();
+        if (excess[l] > -delta) T.pop();
     }
 }
 
 void EdmondsKarpMCF::run_impl() {
     initialize();
+    
+    NetworKit::edgeweight maxWeight{0};
+    for (auto edge : network.getGraph().edgeWeightRange()) {
+        maxWeight = std::max(maxWeight, edge.weight);
+    }
+    uint64_t delta{1}; 
+    while (delta < lround(maxWeight)) delta <<= 1;
 
     while (delta >= 1) {
-        deltaScalingPhase();
+        delta_scaling_phase(delta);
         delta /= 2;
     }
 
     min_cost = 0;
-    network.getGraph().forEdges([&](node u, node v, edgeid eid) {
-        min_cost += network.getFlow(u, v) * network.getCost(u, v);
-    });
+    for (const Edge& edge : edges) {
+        computed_flow[{edge.from, edge.to}] = edge.flow;
+        min_cost += edge.flow * edge.cost;
+    } 
+    min_cost /= 2;
+}
+
+int64_t EdmondsKarpMCF::getFlow(NetworKit::Edge const& edge) {
+    return computed_flow[edge];
 }
 
 } /* namespace Koala */

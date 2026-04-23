@@ -1,13 +1,14 @@
 #include <flow/minimum_cost_flow/MCFlowNetwork.hpp>
 #include <limits>
 
-namespace Koala {
-    using node = NetworKit::node;
-    using Edge = NetworKit::Edge;
-    using Graph = NetworKit:: Graph;
-    using int64 = std::int64_t;
+using node = NetworKit::node;
+using Edge = NetworKit::Edge;
+using Graph = NetworKit:: Graph;
+using int64 = std::int64_t;
 
-    MCFlowNetwork::MCFlowNetwork(Graph const& g) : graph(g) {
+namespace Koala {
+
+    MCFlowNetwork::MCFlowNetwork(Graph const& g, bool circulation = false) : graph(g) {
         if (graph.isWeighted()) {
             graph.forEdges([&](node u, node v, NetworKit::edgeweight weight, NetworKit::edgeid _) {
                 capacity[{u, v}] = static_cast<int64>(weight < 0 ? weight - 0.5 : weight + 0.5);
@@ -19,17 +20,18 @@ namespace Koala {
         }
     }
 
-    MCFlowNetwork::MCFlowNetwork(Graph const& g, std::unordered_map<node, int64> const& ex) 
-        : MCFlowNetwork(g) {
-        excess = ex;
-        primaryExcess = ex;
-    }
-    MCFlowNetwork::MCFlowNetwork(Graph const& g, std::unordered_map<node, int64> const& ex,
-        std::unordered_map<Edge, int64> cost) : MCFlowNetwork(g, ex) {
+    MCFlowNetwork::MCFlowNetwork(Graph const& g, std::unordered_map<Edge, int64> const& cost, bool circulation = false) 
+        : MCFlowNetwork(g, circulation) {
         this->cost = cost;
     }
 
-    Graph const& MCFlowNetwork::getGraph() const {
+    MCFlowNetwork::MCFlowNetwork(Graph const& g, std::unordered_map<Edge, int64> const& cost, std::unordered_map<node, int64> const& ex,
+        bool circulation = false) : MCFlowNetwork(g, cost, circulation) {
+        excess = ex;
+    }
+
+
+    Graph& MCFlowNetwork::getGraph() {
         return graph;
     };
 
@@ -45,94 +47,7 @@ namespace Koala {
             this->capacity[{s,t}] = capacity;
         this->cost[{s,t}] = cost; 
     }
-
-    void MCFlowNetwork::pushFlow(node s, node t, int64 flow) {
-        int64 maxAdd = capacity[{s,t}] - this->flow[{s,t}];
-        flow = !uncapacitated ? std::min(maxAdd, flow) : flow;
-        excess[s] -= flow;
-        excess[t] += flow;
-        this->flow[{s,t}] += flow;
-        this->flow[{t,s}] -= flow;
-    }
-
-    void MCFlowNetwork::setFlow(node s, node t, int64 value) {
-        int64 diff = value - flow[{s,t}];
-        flow[{s,t}] += diff;
-        flow[{t,s}] -= diff;
-        excess[s] -= diff;
-        excess[t] += diff;
-    }
-
-    int64 MCFlowNetwork::getFlow(node s, node t) const {
-        auto it = flow.find({s,t});
-        if (it != flow.end())
-            return it->second;
-        return 0;
-    }
-
-    int MCFlowNetwork::getCost(node s, node t) const {
-        auto it = cost.find({s,t});
-        if (it != cost.end())
-            return it->second;
-        return 0;
-    }  
-
-    void MCFlowNetwork::setCost(node s, node t, int64 cost) {
-        this->cost[{s,t}] = cost;
-    }
-
-    int64 MCFlowNetwork::getCapacity(node s, node t) const {
-        auto it = capacity.find({s,t});
-        if (it != capacity.end())
-            return it->second;
-        return 0;
-    }
-
-    void MCFlowNetwork::setCapacity(node s, node t, int64 value) {
-        capacity[{s,t}] = value;
-    }
-
-    int64 MCFlowNetwork::getExcess(node u) const {
-        auto it = excess.find(u);
-        if (it != excess.end())
-            return it->second;
-        return 0;
-    }
-
-    void MCFlowNetwork::setExcess(node u, int64 ex) {
-        int64 diff = ex - primaryExcess[u];
-        primaryExcess[u] = ex;
-        excess[u] += diff;
-    }
-
-    void MCFlowNetwork::forResidualEdgesOf(node u, std::function<void(NetworKit::node, NetworKit::node)> const& func) const {
-        graph.forNeighborsOf(u, [&](node v) {
-            int64 residualCapacity = 1;
-            
-            if (!uncapacitated) {
-                auto capacityIt = capacity.find({u,v});
-                int64 vCapacity = capacityIt != capacity.end() ? capacityIt->second : 0;
-                auto flowIt = flow.find({u,v});
-                int64 vFlow = flowIt != flow.end() ? flowIt->second : 0;
-                residualCapacity = vCapacity - vFlow;
-            }
-
-            if (residualCapacity > 0) {
-                func(u, v);
-            }
-        });
-
-        graph.forInNeighborsOf(u, [&](node v) {
-            auto flowIt = flow.find({u,v});
-            int64 vFlow = flowIt != flow.end() ? flowIt->second : 0;
-
-            int64 residualCapacity = vFlow;
-            if (residualCapacity > 0) {
-                func(u, v);
-            }
-        });
-    }
-
+    
     void MCFlowNetwork::makeConnected() {
         int64 maxCost{0}; 
         for (auto [edge, cost] : cost) {
@@ -142,55 +57,64 @@ namespace Koala {
         maxCost *= graph.numberOfEdges() + 1;
         
         int64 sumB{0};
-        for (auto [nd, bval] : primaryExcess) {
+        for (auto [nd, bval] : excess) {
             if (bval > 0) sumB += bval;
         }
 
         NetworKit::node sx = graph.addNode();
+        NetworKit::node sx2 = graph.addNode();
+        graph.addEdge(sx, sx2, std::numeric_limits<NetworKit::edgeweight>::infinity());
+        capacity[{sx, sx2}] = std::numeric_limits<int64>::infinity();
+        cost[{sx, sx2}] = maxCost;
         graph.forNodes([&](NetworKit::node u) {
-            if (sx == u) return;
+            if (sx == u || sx2 == u) return;
             auto bound = graph.upperEdgeIdBound();
-            this->cost[{u, sx}] = this->cost[{sx, u}] = maxCost;
-            graph.addEdge(u, sx, sumB);
-            graph.addEdge(sx, u, sumB);
+            this->capacity[{u, sx}] = this->capacity[{sx2, u}] = std::numeric_limits<int64>::infinity();
+            graph.addEdge(u, sx, std::numeric_limits<NetworKit::edgeweight>::infinity());
+            graph.addEdge(sx2, u, std::numeric_limits<NetworKit::edgeweight>::infinity());
         });
     }
 
     void MCFlowNetwork::makeUncapacitated() {
-        // TODO
-    }
+        NetworKit::Graph g(graph.upperNodeIdBound());
 
-    int64 MCFlowNetwork::getFlowCost() const {
-        int64 sum{0};
-        graph.forEdges([&](NetworKit::node u, NetworKit::node v) {
-            try {
-                int64 edgeCost = flow.at({u, v}) * cost.at({u, v});
-                sum += edgeCost;
-
-            } catch (const std::out_of_range& e) {}
+        graph.forEdges([&](node u, node v, NetworKit::edgeweight weight) {
+            node w = g.addNode();
+            int64 cap = capacity[{u, v}];
+            if (cap == std::numeric_limits<int64>::infinity())
+                return;
+            excess[v] += cap;
+            excess[w] -= cap;
+            capacity.erase({u, v});
+            capacity[{u, w}] = capacity[{v, w}] = std::numeric_limits<int64>::infinity();
+            cost[{u, w}] = cost[{u, v}];
+            cost.erase({u, v});
+            g.addEdge(u, w, std::numeric_limits<NetworKit::edgeweight>::infinity());
+            g.addEdge(v, w, std::numeric_limits<NetworKit::edgeweight>::infinity());
         });
-        
-        return sum;
+
+        graph = g;
     }
 
-    bool MCFlowNetwork::isLegalFlow() const {
-        for (auto [node, value] : excess) {
-            if (value != 0) return false;
-        }
-
-        if (!uncapacitated) {
-            bool capacitySatisfied = true;
-            graph.forEdges([&](NetworKit::node u, NetworKit::node v) {
-                try {
-                    if (flow.at({u, v}) > capacity.at({u, v})) 
-                        capacitySatisfied = false;
-                } catch (std::out_of_range const& ex) {}
-            });
-            if (!capacitySatisfied) {
-                return false;
+    void MCFlowNetwork::makeCostsNonNegative() {
+        std::vector<NetworKit::Edge> negativeEdges;
+        graph.forEdges([&](node u, node v) {
+            if (cost[{u, v}] < 0) { 
+                negativeEdges.push_back({u, v});
             }
+        });
+
+        for (const NetworKit::Edge& edge : negativeEdges) {
+            int64 cap = capacity[edge];
+            auto [u, v] = edge;
+        
+            excess[v] += cap;
+            excess[u] -= cap;
+            graph.removeEdge(edge.u, edge.v);
+            graph.addEdge(edge.v, edge.u, static_cast<double>(cap));
+            cost[{v, u}] = -cost[{u,v}];
+            cost[{u, v}] = 0;
         }
-        return true;
     }
 
 } /* namespace Koala */
