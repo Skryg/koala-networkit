@@ -1,310 +1,272 @@
 #include <flow/minimum_cost_flow/OrlinMCF.hpp>
 #include <flow/KingRaoTarjanMaximumFlow.hpp>
 #include <shortest_path/Dijkstra.hpp>
-
-namespace Koala {
+#include <algorithm>
 
 using edgeid = NetworKit::edgeid;
 using node = NetworKit::node;
+using Edge = NetworKit::Edge;
+using int64 = std::int64_t;
 
-void OrlinMCF::init_flow() {
-    this->graph.indexEdges();
-    make_connected();
-    make_uncapacitated();
-    make_costs_nonnegative();
-}
+namespace Koala {
 
-void OrlinMCF::make_costs_nonnegative() {
-    // TODO 
-}
-
-void OrlinMCF::init_circulation() {
-    construct_flow_from_circulation();
-    init_flow();
+int64 OrlinMCF::getFlow(const NetworKit::Edge& edge) {
+    if (maxflow.has_value()) { 
+        return maxflow->get_flow({edge.u, edge.v});   
+    }
+    return 0;
 }
 
 void OrlinMCF::initialize() {
-    flow.clear();
-    original_graph = graph;
-    excess = b;
-    for(auto [key, value] : excess) {
-        delta = std::max(delta, value); 
+    auto& graph = network.getGraph();
+    network.makeConnected();
+    uncapacitated_nodes_bounds.first = graph.upperNodeIdBound();
+    network.makeUncapacitated();
+    uncapacitated_nodes_bounds.second = graph.upperNodeIdBound();
+    network.makeCostsNonNegative();
+    nodes_number = graph.numberOfNodes();
+
+    excess.assign(graph.upperNodeIdBound(), 0);
+    for (auto [key, value] : network.excess) {
+        excess[key] = value;
+    }
+    potential.assign(graph.upperNodeIdBound(), 0);
+    edges.assign(graph.numberOfEdges(), Edge());
+    int ptr = 0;
+    
+    neigh_list.assign(graph.upperNodeIdBound(), std::vector<uint32_t>());
+
+    graph.forNodes([&](node u) { 
+        graph.forNeighborsOf(u, [&](node v) {
+            uint32_t from = static_cast<uint32_t>(u);
+            uint32_t to = static_cast<uint32_t>(v);
+            int64 cost = network.cost[{u, v}];
+            int64 capacity = network.capacity[{u, v}];
+            neigh_list[from].push_back(2*ptr);
+            edges[2*ptr] = {
+                from, to,
+                cost, capacity, 0LL
+            };
+
+            neigh_list[to].push_back(2*ptr+1);
+            edges[2*ptr + 1] = {
+                to, from, 
+                -cost, 0LL, 0LL
+            };
+            ++ptr;
+        });
+    });
+    original_edges = edges;
+}
+
+bool OrlinMCF::is_added_uncapacitated(node v) const {
+    auto [begin, end] = uncapacitated_nodes_bounds;
+    return begin <= v && v < end;
+}
+
+void OrlinMCF::apply_potential() {
+    for (Edge& edge : edges) {
+        edge.cost += potential[edge.to] - potential[edge.from];
+    }
+    std::fill(potential.begin(), potential.end(), 0);
+}
+    
+void OrlinMCF::contract_nodes(uint32_t u, uint32_t v) {
+    if (u > v) std::swap(u, v);
+    for (uint32_t edge_idx : neigh_list[v]) {
+        Edge& edge = edges[edge_idx];
+        if (edge.to == u) {
+            edge.capacity = 0;
+            edge.flow = 0;
+            edges[edge_idx ^ 1].capacity = 0;
+            edges[edge_idx ^ 1].flow = 0;
+        } else {
+            edge.from = u;
+            neigh_list[u].push_back(edge_idx);
+
+            edges[edge_idx ^ 1].to = u;
+        }
+    }
+    --nodes_number;
+    neigh_list[v].clear();
+}
+
+void OrlinMCF::push_no_excess(uint32_t edge_idx, int64_t amount) {
+    Edge& edge = edges[edge_idx];
+    edge.flow += amount;
+    edges[edge_idx ^ 1].flow -= amount;
+}
+
+void OrlinMCF::find_optimal_delta(int64_t &delta) {
+    for (const Edge& edge : edges) {
+        if (edge.flow != 0) {
+            return;
+        }
+    }
+    for (const int64_t& supply : excess) {
+        if (supply > delta) {
+            delta = supply;
+        }
     }
 }
 
-long long OrlinMCF::cp(node u, node v) {
-    return flow[{u, v}] - potential[u] + potential[v];
+void OrlinMCF::contraction_phase(int64_t delta) {
+    apply_potential();
+    for (int i = 0; i < edges.size(); ++i) {
+        const Edge& edge = edges[i];
+        if (edge.from != edge.to && edge.flow >= 3 * delta * nodes_number && edge.capacity > 0) {
+            contract_nodes(edge.from, edge.to);
+        }
+        // { u, v, edge_cost } 
+        contracted_nodes.push({edge.from, edge.to, original_edges[i].cost});
+    }
+    for (const Edge& edge : edges) {
+        if (edge.from != edge.to && edge.flow >= 3 * delta * nodes_number && edge.capacity > 0) {
+            contract_nodes(edge.from, edge.to);
+        }
+    }
 }
 
-bool OrlinMCF::is_imbalanced() {
-    for (auto [node, value] : excess) {
-        if (value != 0) return true;
+bool OrlinMCF::is_imbalanced() { 
+    for (const int64_t& supply : excess) {
+        if (supply != 0) {
+            return true;
+        }
     }
     return false;
 }
 
-NetworKit::Graph OrlinMCF::generate_graph_for_sp(std::map<edge, std::pair<int,node>>& shortcuts) {
-    NetworKit::Graph distGraph(graph.upperNodeIdBound(), true, true);
-    auto [first, last] = uncapacitated_nodes_bounds;
+void OrlinMCF::uncontract_nodes_potential() {
+    while (!contracted_nodes.empty()) {
+        auto [u, v, cost] = contracted_nodes.top();
+        contracted_nodes.pop();
 
-    
-    for (node i = first; i <= last; ++i) {
-        if (graph.hasNode(i)) {
-            node neighs[2];                
-            for (int j = 0; j < 2; ++j) {
-                neighs[j] = graph.getIthInNeighbor(i, j);
+        if (u < v) {
+            potential_computed[v] = potential_computed[u] - cost; 
+        } else {
+            potential_computed[u] = potential_computed[v] + cost;
+        }
+    }
+}
+
+void OrlinMCF::augmenting_phase(uint32_t s, uint32_t t, int64_t delta) {
+    // This function would implement the augmenting phase of Orlin's algorithm.
+    // It would find augmenting paths and push flow until no more augmenting paths exist.
+    auto dist = dijkstra(s, delta);
+    while (t != s && dist[t].first != LLONG_MAX) {
+        uint32_t edge_idx = dist[t].second;
+        push_no_excess(edge_idx, delta);
+        t = edges[edge_idx].from;
+    }
+    excess[s] -= delta;
+    excess[t] += delta;
+
+    for (uint32_t i = 0; i < n; i++) {
+        if (dist[i].first != LLONG_MAX) {
+            potential[i] -= dist[i].first;
+            potential_computed[i] -= dist[i].first;
+        }
+    }
+}
+
+void OrlinMCF::run_impl() {
+    int64_t delta = 0;
+    while (is_imbalanced()) {
+        find_optimal_delta(delta);
+        contraction_phase(delta);
+
+        std::stack<uint32_t> S, T;
+
+        for (uint32_t i = 0; i < n; i++) {
+            if (excess[i] >= ALPHA*(delta*3)) {
+                S.push(i);
+            } else if (excess[i] <= -ALPHA*(delta*3)) {
+                T.push(i);
             }
+        }
 
-            for (int j = 0; j < 2; ++j) {
-                long long f = flow[{neighs[j], i}];
+        while (!S.empty() && !T.empty()) {
+            uint32_t s = S.top();
+            uint32_t t = T.top();
 
-                if (f > 0) {
-                    edge e = {neighs[j^1], neighs[j]};
-                    long long weight = cp(e.first, i);
-                    if (shortcuts.find(e) == shortcuts.end()) {
-                        shortcuts[e] = {weight, i};
-                    } else {
-                        shortcuts[e] = std::min(shortcuts[e], {weight, i});
-                    }
+            augmenting_phase(s, t, delta);
+            if (excess[s] < ALPHA*(delta*3)) {
+                S.pop();
+            }
+            if (excess[t] > -ALPHA*(delta*3)) {
+                T.pop();
+            }
+        }
 
-                    distGraph.addEdge(
-                        e.first,
-                        e.second,
-                        weight
-                    );
+        delta /= 2;
+    }
+
+    uncontract_nodes_potential();
+}
+
+
+
+std::vector<std::pair<int64_t, uint64_t>> OrlinMCF::dijkstra(uint32_t source, int64_t delta) {
+    // This function would implement Dijkstra's algorithm to find shortest paths from the source vertex.
+    // It would return a vector of distances from the source to all other vertices.
+    std::set<std::pair<int64_t, uint32_t>> pq;
+    
+    std::vector<std::pair<int64_t, uint64_t>> dist(n, {LLONG_MAX, 0});
+    dist[source] = {0, 0};
+    pq.insert({0, source});
+    std::vector<bool> visited(n, false);
+
+    while (!pq.empty()) {
+        auto [d, u] = *pq.begin();
+        pq.erase(pq.begin());
+
+        if (visited[u]) continue;
+        visited[u] = true;
+
+        for (uint32_t edge_idx : neigh_list[u]) {
+            const Edge& edge = edges[edge_idx];
+            if (edge.capacity >= edge.flow + delta) {
+                int64_t new_dist = d + edge.cost - potential[u] + potential[edge.to];
+                // TODO: Optimize for uncapacitated vertices
+                if (new_dist < dist[edge.to].first) {
+                    pq.erase({dist[edge.to].first, edge.to});
+                    dist[edge.to] = {new_dist, edge_idx};
+                    pq.insert({new_dist, edge.to});
                 }
             }
         }
     }
-    graph.forEdges([&](node u, node v) {
-        if (first <= v && v <= last) return;
-        long long cost = cp(u, v);
-        distGraph.addEdge(u, v, cost);
-        if (flow[{u, v}] > 0) {
-            distGraph.addEdge(v, u, -cost);
-        }
-    });
-    return distGraph;
+
+    return dist;
 }
 
-void OrlinMCF::fill_distances_uncapacitated(std::vector<double>& distances) {
-    auto [first, last] = uncapacitated_nodes_bounds;   
-    for(node i = first; i <= last; ++i) {
-        if (!graph.hasNode(i)) 
-            continue;
+void OrlinMCF::computeFinalFlows() {
+    auto& orignal_graph = network.getGraph();
 
-        graph.forInEdgesOf(i, [&](node _, node j) {
-            distances[i] = std::min(distances[i], distances[j] + costs[{j, i}]);
-        });
-    }
-}
-
-void OrlinMCF::scaling_augmentation(node u, node v) {
-    std::map<edge, std::pair<int, node>> shortcuts;
-    NetworKit::Graph distGraph = generate_graph_for_sp(shortcuts);
-    
-    Dijkstra<FibonacciHeap> shortestPath(distGraph, u, true);
-    shortestPath.run();
-    std::vector<double> distances = shortestPath.getDistances();
-    fill_distances_uncapacitated(distances);
-    
-    for(auto & [nd, pt] : potential) {
-        pt -= lround(distances[nd]);
-    }
-
-    std::vector<node> path;
-
-    if (is_added_uncapacitated(v)) {
-        std::pair<long long, node> pathEnd = {INT64_MAX, -1};
-        graph.forInEdgesOf(v, [&](node _, node w) {
-            pathEnd = std::min(pathEnd, {distances[w] + costs[{w, v}], w}); 
-        });
-        node ending = pathEnd.second;
-        path = shortestPath.getPath(ending);
-        path.push_back(v);
-    } else {
-        path = shortestPath.getPath(v);
-    }
-
-    for (int i=0; i<path.size()-1; i++) {
-        node p = path[i], q = path[i+1];
-
-        if(flow[{q, p}] > 0) {
-            flow[{q, p}] -= delta;
-        } else {
-            int e1, shortcut;
-            e1 = shortcut = INT32_MAX;
-            if (graph.hasEdge(p, q)) {
-                e1 = costs[{p, q}];
-            }
-            auto iter = shortcuts.find({p, q});
-            if (iter != shortcuts.end()) {
-                shortcut = iter->second.first;
-            }
-            
-            if (shortcut > e1) { 
-                flow[{p, q}] += delta;
-            } else {
-                node x = iter->second.second;
-                flow[{p, x}] += delta;
-                flow[{q, x}] -= delta;
-            }
-        }
-    }
-    excess[path.front()] -= delta;
-    excess[path.back()] += delta;        
-}
-
-void OrlinMCF::run_impl() {
-    initialize();
-
-    while (is_imbalanced()) {
-        bool zero = true; 
-        for (auto f : flow) {
-            if (f.second) {
-                zero = false;
-                break;
-            } 
-        }
-        long long newDelta{1};
-        if (zero) { 
-            long long maxDelta{0};
-            for (auto ex : excess) {
-                maxDelta = std::max(ex.second, maxDelta);
-            }
-            while (newDelta < maxDelta) newDelta <<= 1;
-        }
-        delta = std::min(delta, newDelta);
-
-        delta_scaling_phase();
-        delta /= 2;
-    }
-
-    uncontract_and_compute_flow();
-}
-
-void OrlinMCF::uncontract_and_compute_flow() {
-    while (contractions.size()) {
-        auto [u, v] = contractions.top();
-        contractions.pop(); 
-        potential[v] = potential[u];
-    }
-
-    NetworKit::Graph flowGraph(original_graph.numberOfNodes(), true, true);
-    node s = flowGraph.addNode();
-    node t = flowGraph.addNode();
-    long long bsum{0};
-    original_graph.forNodes([&](node n) { 
-        long long bval = b[n];
-        if (bval > 0) {
-            flowGraph.addEdge(s, n, bval);
-            bsum += bval;
-        } else if (bval < 0) {
-            flowGraph.addEdge(n, t, -bval);
+    NetworKit::Graph maxflow_graph(original_graph.upperNodeIdBound());
+    original_graph.forEdges([&](node u, node v) {
+        if (network.cost[{u, v}] - potential_computed[u] + potential_computed[v] == 0) {
+            maxflow_graph.addEdge(u, v, static_cast<double>(INT_MAX));
         }
     });
 
-    original_graph.forEdges([&](node u, node v){
-        if (cp(u, v) == 0) {
-            flowGraph.addEdge(u, v, bsum);
+    node s = maxflow_graph.addNode();
+    node t = maxflow_graph.addNode();
+
+    for (auto [key, value] : network.excess) {
+        if (value > 0) {
+            maxflow_graph.addEdge(s, key, static_cast<double>(value));
+        } else if (value < 0) {
+            maxflow_graph.addEdge(key, t, static_cast<double>(value));
         }
-    });
-
-    KingRaoTarjanMaximumFlow maxflow(flowGraph, s, t);
-    maxflow.run();
-    original_graph.forEdges([&](node u, node v){
-        flow[{u, v}] = maxflow.get_flow({u, v});
-    });
-}
-
-
-void OrlinMCF::delta_scaling_phase() {
-    contraction_phase();
-
-    std::vector<NetworKit::node> s,t;
-    graph.forNodes([&](NetworKit::node node) {
-        if (excess[node] >= ALPHA*delta) {
-            s.push_back(node);
-        }
-        if (excess[node] <= -ALPHA*delta) {
-            t.push_back(node);
-        }
-    });
-
-    while (s.size() && t.size()) {
-        NetworKit::node k = s.back();
-        NetworKit::node v = t.back();
-
-        scaling_augmentation(k,v);
     }
-}
-
-void OrlinMCF::contraction_phase() {
-    auto contractible = [&](edge& edge) -> bool {
-        for (auto [e, f] : flow) {
-            if (f >= 3*graph.numberOfNodes()*delta) {
-                edge = e;
-                return true;
-            }
-        }
-        return false;
-    };
-    edge e;
-    while(contractible(e)) {
-        auto [u, v] = e;
-        contract_nodes(u, v);
-    }
-}
-
-void OrlinMCF::contract_nodes(node u, node v) {
-    if (v < u) {
-        std::swap(u, v);
-    }
-
-    std::set<edge> edge_set;
-    graph.forEdgesOf(u, [&](node i, node j) {
-        edge_set.insert({i, j});
+    maxflow.emplace(maxflow_graph, s, t);
+    maxflow->run();
+    min_cost = 0;
+    maxflow_graph.forEdges([&](node u, node v) {
+        if (u == s || v == t) return;
+        min_cost += network.cost[{u, v}] * maxflow->get_flow({u, v});
     });
-    graph.forInEdgesOf(u, [&](node i, node j) {
-        edge_set.insert({j, i});
-    });
-
-    graph.forEdgesOf(v, [&](node, node w) {
-        if(u != w) {
-            if (edge_set.find({u, w}) == edge_set.end()) {
-                edge_set.insert({u, w});
-                graph.addEdge(u, w);
-                flow[{u, w}] = flow[{v, w}];
-                costs[{u, w}] = costs[{v, w}];
-            } else {
-                flow[{u, w}] += flow[{v, w}];
-                costs[{u, w}] = std::min(costs[{u, w}], costs[{v, w}]);
-            }
-        }
-        flow.erase({v, w});
-        costs.erase({v, w});
-    });
-    graph.forInEdgesOf(v, [&](node, node w) {
-        if (w != u) {
-            if (edge_set.find({w, u}) == edge_set.end()) {
-                edge_set.insert({w, u});
-                graph.addEdge(w, u);
-                flow[{w, u}] = flow[{w, v}];
-                costs[{w, u}] = costs[{w, v}];
-            } else {
-                flow[{w, u}] += flow[{w, v}];
-                costs[{w, u}] = std::min(costs[{w, u}], costs[{w, v}]);
-            }
-        }             
-        flow.erase({w, v});
-        costs.erase({w, v});
-    });
-    
-    excess[u] = excess[u] + excess[v];
-    excess.erase(v);
-
-    graph.removeNode(v);
-    contractions.push({u,v});
 }
 
 } /* namespace Koala */

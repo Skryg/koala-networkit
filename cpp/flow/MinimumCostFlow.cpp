@@ -6,17 +6,6 @@ namespace Koala {
 using index = NetworKit::index;
 using int64 = std::int64_t;
 
-int64 MinimumCostFlow::getFlow(NetworKit::Edge const& e) {
-    return network.getFlow(e.u, e.v);
-}
-
-int64 MinimumCostFlow::getMinCost() const {
-    return network.getFlowCost();
-}
-
-MCFlowNetwork const& MinimumCostFlow::getNetwork() const {
-    return network;
-}
 
 // bool MinimumCostFlow::isOk() const {
 //     return feasible;
