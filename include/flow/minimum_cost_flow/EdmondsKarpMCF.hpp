@@ -20,8 +20,8 @@ class EdmondsKarpMCF final : public MinimumCostFlow {
 
   void run_impl() override;
   void initialize();
-  void delta_scaling_phase(uint64_t);
-  void augmenting_phase(uint32_t, uint32_t, uint64_t);
+  void delta_scaling_phase(int64_t);
+  void augmenting_phase(uint32_t, uint32_t, int64_t);
   void send(std::uint64_t, std::int64_t);
   std::vector<std::pair<int64_t, uint64_t>> dijkstra(uint32_t source, int64_t delta);
 
