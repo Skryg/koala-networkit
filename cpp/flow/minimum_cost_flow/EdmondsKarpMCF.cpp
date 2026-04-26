@@ -2,6 +2,15 @@
 #include <shortest_path/Dijkstra.hpp>
 #include <vector>
 #include <climits>
+#include <iostream>
+
+// #define DEBUG_DUMP
+
+#ifdef DEBUG_DUMP
+#define DBG(x) std::cerr << x
+#else 
+#define DBG(x)
+#endif
 
 using node = NetworKit::node;
 using edgeid = NetworKit::edgeid;
@@ -19,7 +28,7 @@ void EdmondsKarpMCF::initialize() {
         excess[key] = value;
     }
     potential.assign(n, 0);
-    edges.assign(graph.numberOfEdges(), Edge());
+    edges.assign(2 * graph.numberOfEdges(), Edge());
     int ptr = 0;
     
     neigh_list.assign(n, std::vector<uint32_t>());
@@ -43,27 +52,34 @@ void EdmondsKarpMCF::initialize() {
             ++ptr;
         });
     });
+
+
+    for (int i = 0; i < edges.size(); ++i) {
+        DBG(i << " -> from: " << edges[i].from 
+            << " to: " << edges[i].to << " capacity: " << edges[i].capacity
+            << " cost: " << edges[i].cost << '\n');
+    }
 }
 
 std::vector<std::pair<int64_t, uint64_t>> EdmondsKarpMCF::dijkstra(uint32_t source, int64_t delta) {
     std::set<std::pair<int64_t, uint32_t>> pq;
-    std::vector<std::pair<int64_t, uint64_t>> dist(n, {LLONG_MAX, 0});
+    std::vector<std::pair<int64_t, uint64_t>> dist(n, {std::numeric_limits<int64_t>::max(), 0});
     dist[source] = {0, 0};
     pq.insert({0, source});
     std::vector<bool> visited(n, false);
-
+    DBG("Dijkstra\n");
     while (!pq.empty()) {
         auto [d, u] = *pq.begin();
         pq.erase(pq.begin());
 
         if (visited[u]) continue;
         visited[u] = true;
-
+        
         for (uint32_t edge_idx : neigh_list[u]) {
             const Edge& edge = edges[edge_idx];
             if (edge.capacity >= edge.flow + delta) {
+                assert(edge.from == u);
                 int64_t new_dist = d + edge.cost - potential[u] + potential[edge.to];
-                // TODO: Optimize for uncapacitated vertices
                 if (new_dist < dist[edge.to].first) {
                     pq.erase({dist[edge.to].first, edge.to});
                     dist[edge.to] = {new_dist, edge_idx};
@@ -81,14 +97,16 @@ void EdmondsKarpMCF::send(uint64_t edgeid, int64_t value) {
     edges[edgeid^1].flow -= value;
 }
 
-void EdmondsKarpMCF::augmenting_phase(uint32_t s, uint32_t t, uint64_t delta) {
+void EdmondsKarpMCF::augmenting_phase(uint32_t s, uint32_t t, int64_t delta) {
     auto dist = dijkstra(s, delta);
-
+    DBG("AUGMENTING delta: " << delta << " From: " << s << " To: " << t <<  "\n");
     uint32_t ptr = t;
     while (s != ptr) {
         auto [_, edgeid] = dist[ptr];
+        DBG("From: "<<edges[edgeid].from << " To: " << edges[edgeid].to << " Residual cap: " <<  edges[edgeid].capacity-edges[edgeid].flow << '\n');
         send(edgeid, delta);
         ptr = edges[edgeid].from;
+
     }
     excess[t] += delta;
     excess[s] -= delta;
@@ -100,7 +118,7 @@ void EdmondsKarpMCF::augmenting_phase(uint32_t s, uint32_t t, uint64_t delta) {
     }
 }
 
-void EdmondsKarpMCF::delta_scaling_phase(uint64_t delta) {
+void EdmondsKarpMCF::delta_scaling_phase(int64_t delta) {
     NetworKit::Graph const& graph = network.getGraph();
     for (int i = 0; i < edges.size(); ++i) {
         Edge& edge = edges[i];
@@ -124,7 +142,6 @@ void EdmondsKarpMCF::delta_scaling_phase(uint64_t delta) {
         node l = T.top();
 
         augmenting_phase(k, l, delta);
-
         // update S, T
         if (excess[k] < delta) S.pop();
         if (excess[l] > -delta) T.pop();
@@ -134,12 +151,15 @@ void EdmondsKarpMCF::delta_scaling_phase(uint64_t delta) {
 void EdmondsKarpMCF::run_impl() {
     initialize();
     
-    NetworKit::edgeweight maxWeight{0};
-    for (auto edge : network.getGraph().edgeWeightRange()) {
-        maxWeight = std::max(maxWeight, edge.weight);
+    int64_t delta{1}; 
+    int i=0;
+    DBG("excess\n");
+    for (auto e : excess) {
+        DBG(i++ <<": " << e <<'\n');
+        while (delta < e) {
+            delta <<= 1;
+        }
     }
-    uint64_t delta{1}; 
-    while (delta < lround(maxWeight)) delta <<= 1;
 
     while (delta >= 1) {
         delta_scaling_phase(delta);

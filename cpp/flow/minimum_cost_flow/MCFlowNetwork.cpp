@@ -63,30 +63,30 @@ namespace Koala {
 
         NetworKit::node sx = graph.addNode();
         NetworKit::node sx2 = graph.addNode();
-        graph.addEdge(sx, sx2, std::numeric_limits<NetworKit::edgeweight>::infinity());
-        capacity[{sx, sx2}] = std::numeric_limits<int64>::infinity();
+        graph.addEdge(sx, sx2, std::numeric_limits<NetworKit::edgeweight>::max());
+        capacity[{sx, sx2}] = std::numeric_limits<int64>::max();
         cost[{sx, sx2}] = maxCost;
         graph.forNodes([&](NetworKit::node u) {
             if (sx == u || sx2 == u) return;
             auto bound = graph.upperEdgeIdBound();
-            this->capacity[{u, sx}] = this->capacity[{sx2, u}] = std::numeric_limits<int64>::infinity();
+            this->capacity[{u, sx}] = this->capacity[{sx2, u}] = std::numeric_limits<int64>::max();
             graph.addEdge(u, sx, std::numeric_limits<NetworKit::edgeweight>::infinity());
             graph.addEdge(sx2, u, std::numeric_limits<NetworKit::edgeweight>::infinity());
         });
     }
 
     void MCFlowNetwork::makeUncapacitated() {
-        NetworKit::Graph g(graph.upperNodeIdBound());
+        NetworKit::Graph g(graph.upperNodeIdBound(), true, true);
 
         graph.forEdges([&](node u, node v, NetworKit::edgeweight weight) {
             node w = g.addNode();
             int64 cap = capacity[{u, v}];
-            if (cap == std::numeric_limits<int64>::infinity())
+            if (cap == std::numeric_limits<int64>::max())
                 return;
             excess[v] += cap;
             excess[w] -= cap;
             capacity.erase({u, v});
-            capacity[{u, w}] = capacity[{v, w}] = std::numeric_limits<int64>::infinity();
+            capacity[{u, w}] = capacity[{v, w}] = std::numeric_limits<int64>::max();
             cost[{u, w}] = cost[{u, v}];
             cost.erase({u, v});
             g.addEdge(u, w, std::numeric_limits<NetworKit::edgeweight>::infinity());
@@ -97,24 +97,24 @@ namespace Koala {
     }
 
     void MCFlowNetwork::makeCostsNonNegative() {
-        std::vector<NetworKit::Edge> negativeEdges;
+        NetworKit::Graph g(graph.upperNodeIdBound(), true, true);
+
         graph.forEdges([&](node u, node v) {
+            int64 cap = capacity[{u, v}];
             if (cost[{u, v}] < 0) { 
-                negativeEdges.push_back({u, v});
+                excess[v] += cap;
+                excess[u] -= cap;
+                g.addEdge(v, u, static_cast<NetworKit::edgeweight>(cap));
+                capacity[{v, u}] = capacity[{u, v}];
+                capacity[{u, v}] = 0;
+                cost[{v, u}] = -cost[{u,v}];
+                cost[{u, v}] = 0;
+            } else {
+                g.addEdge(u, v, static_cast<NetworKit::edgeweight>(cap));
             }
         });
 
-        for (const NetworKit::Edge& edge : negativeEdges) {
-            int64 cap = capacity[edge];
-            auto [u, v] = edge;
-        
-            excess[v] += cap;
-            excess[u] -= cap;
-            graph.removeEdge(edge.u, edge.v);
-            graph.addEdge(edge.v, edge.u, static_cast<double>(cap));
-            cost[{v, u}] = -cost[{u,v}];
-            cost[{u, v}] = 0;
-        }
+        graph = g;
     }
 
 } /* namespace Koala */

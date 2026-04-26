@@ -3,6 +3,14 @@
 #include <shortest_path/Dijkstra.hpp>
 #include <algorithm>
 
+// #define DEBUG_DUMP
+
+#ifdef DEBUG_DUMP
+#define DBG(x) std::cerr << x
+#else 
+#define DBG(x)
+#endif
+
 using edgeid = NetworKit::edgeid;
 using node = NetworKit::node;
 using Edge = NetworKit::Edge;
@@ -18,26 +26,30 @@ int64 OrlinMCF::getFlow(const NetworKit::Edge& edge) {
 }
 
 void OrlinMCF::initialize() {
-    auto& graph = network.getGraph();
-    network.makeConnected();
-    uncapacitated_nodes_bounds.first = graph.upperNodeIdBound();
+    uncapacitated_nodes_bounds.first = network.getGraph().upperNodeIdBound();
     network.makeUncapacitated();
-    uncapacitated_nodes_bounds.second = graph.upperNodeIdBound();
+    uncapacitated_nodes_bounds.second = network.getGraph().upperNodeIdBound();
     network.makeCostsNonNegative();
+    network.makeConnected();
+    auto& graph = network.getGraph();
     nodes_number = graph.numberOfNodes();
-
-    excess.assign(graph.upperNodeIdBound(), 0);
+    max_nodeid = graph.upperNodeIdBound();
+    original_graph = graph;
+    excess.assign(max_nodeid, 0);
     for (auto [key, value] : network.excess) {
         excess[key] = value;
     }
-    potential.assign(graph.upperNodeIdBound(), 0);
-    edges.assign(graph.numberOfEdges(), Edge());
+    potential.assign(max_nodeid, 0);
+    potential_computed = potential;
+    edges.assign(2 * graph.numberOfEdges(), Edge());
+    DBG("size" << edges.size() << '\n');
     int ptr = 0;
     
-    neigh_list.assign(graph.upperNodeIdBound(), std::vector<uint32_t>());
+    neigh_list.assign(max_nodeid, std::vector<uint32_t>());
 
     graph.forNodes([&](node u) { 
         graph.forNeighborsOf(u, [&](node v) {
+            DBG(u << ' ' << v << ' ' << 2*ptr << '\n');
             uint32_t from = static_cast<uint32_t>(u);
             uint32_t to = static_cast<uint32_t>(v);
             int64 cost = network.cost[{u, v}];
@@ -87,6 +99,9 @@ void OrlinMCF::contract_nodes(uint32_t u, uint32_t v) {
             edges[edge_idx ^ 1].to = u;
         }
     }
+
+    excess[u] += excess[v];
+    excess[v] = 0;
     --nodes_number;
     neigh_list[v].clear();
 }
@@ -103,28 +118,24 @@ void OrlinMCF::find_optimal_delta(int64_t &delta) {
             return;
         }
     }
-    for (const int64_t& supply : excess) {
-        if (supply > delta) {
-            delta = supply;
-        }
+    int64_t maxExcess = 0;
+    for (int64_t excess : excess) {
+        maxExcess = std::max(maxExcess, excess);
     }
+    delta = std::min(maxExcess, delta);
 }
 
 void OrlinMCF::contraction_phase(int64_t delta) {
     apply_potential();
     for (int i = 0; i < edges.size(); ++i) {
         const Edge& edge = edges[i];
-        if (edge.from != edge.to && edge.flow >= 3 * delta * nodes_number && edge.capacity > 0) {
+        if (edge.from != edge.to && edge.flow >= 3 * delta * nodes_number) {
             contract_nodes(edge.from, edge.to);
-        }
-        // { u, v, edge_cost } 
-        contracted_nodes.push({edge.from, edge.to, original_edges[i].cost});
-    }
-    for (const Edge& edge : edges) {
-        if (edge.from != edge.to && edge.flow >= 3 * delta * nodes_number && edge.capacity > 0) {
-            contract_nodes(edge.from, edge.to);
+            // { u, v, edge_cost } 
+            contracted_nodes.push({edge.from, edge.to, original_edges[i].cost});
         }
     }
+    
 }
 
 bool OrlinMCF::is_imbalanced() { 
@@ -150,19 +161,22 @@ void OrlinMCF::uncontract_nodes_potential() {
 }
 
 void OrlinMCF::augmenting_phase(uint32_t s, uint32_t t, int64_t delta) {
+    DBG("augmenting from " << s << " to " << t << " value " << delta << '\n');
     // This function would implement the augmenting phase of Orlin's algorithm.
     // It would find augmenting paths and push flow until no more augmenting paths exist.
     auto dist = dijkstra(s, delta);
-    while (t != s && dist[t].first != LLONG_MAX) {
-        uint32_t edge_idx = dist[t].second;
+    uint32_t ptr = t;
+    while (ptr != s) {
+        DBG("push " << ptr << '\n');
+        uint32_t edge_idx = dist[ptr].second;
         push_no_excess(edge_idx, delta);
-        t = edges[edge_idx].from;
+        ptr = edges[edge_idx].from;
     }
     excess[s] -= delta;
     excess[t] += delta;
 
-    for (uint32_t i = 0; i < n; i++) {
-        if (dist[i].first != LLONG_MAX) {
+    for (uint32_t i = 0; i < max_nodeid; i++) {
+        if (dist[i].first != std::numeric_limits<int64_t>::max()) {
             potential[i] -= dist[i].first;
             potential_computed[i] -= dist[i].first;
         }
@@ -170,30 +184,38 @@ void OrlinMCF::augmenting_phase(uint32_t s, uint32_t t, int64_t delta) {
 }
 
 void OrlinMCF::run_impl() {
-    int64_t delta = 0;
+    initialize();
+    
+    int64_t delta = std::numeric_limits<int64_t>::max();
+
     while (is_imbalanced()) {
         find_optimal_delta(delta);
+        DBG(delta << '\n');
         contraction_phase(delta);
 
         std::stack<uint32_t> S, T;
 
-        for (uint32_t i = 0; i < n; i++) {
-            if (excess[i] >= ALPHA*(delta*3)) {
+        for (uint32_t i = 0; i < max_nodeid; i++) {
+            if (excess[i] >= ALPHA*delta) {
+                DBG("Alpha delta: " << ALPHA*delta << '\n');
                 S.push(i);
-            } else if (excess[i] <= -ALPHA*(delta*3)) {
+            } else if (excess[i] <= -ALPHA*delta) {
                 T.push(i);
             }
         }
 
         while (!S.empty() && !T.empty()) {
+            DBG("augmenting choosing\n");
             uint32_t s = S.top();
             uint32_t t = T.top();
 
             augmenting_phase(s, t, delta);
-            if (excess[s] < ALPHA*(delta*3)) {
+            if (excess[s] < ALPHA*delta) {
+                DBG("pop1\n");
                 S.pop();
             }
-            if (excess[t] > -ALPHA*(delta*3)) {
+            if (excess[t] > -ALPHA*delta) {
+                DBG("pop1\n");
                 T.pop();
             }
         }
@@ -202,6 +224,7 @@ void OrlinMCF::run_impl() {
     }
 
     uncontract_nodes_potential();
+    compute_final_flows();
 }
 
 
@@ -211,10 +234,10 @@ std::vector<std::pair<int64_t, uint64_t>> OrlinMCF::dijkstra(uint32_t source, in
     // It would return a vector of distances from the source to all other vertices.
     std::set<std::pair<int64_t, uint32_t>> pq;
     
-    std::vector<std::pair<int64_t, uint64_t>> dist(n, {LLONG_MAX, 0});
+    std::vector<std::pair<int64_t, uint64_t>> dist(max_nodeid, {std::numeric_limits<int64_t>::max(), 0});
     dist[source] = {0, 0};
     pq.insert({0, source});
-    std::vector<bool> visited(n, false);
+    std::vector<bool> visited(max_nodeid, false);
 
     while (!pq.empty()) {
         auto [d, u] = *pq.begin();
@@ -240,31 +263,42 @@ std::vector<std::pair<int64_t, uint64_t>> OrlinMCF::dijkstra(uint32_t source, in
     return dist;
 }
 
-void OrlinMCF::computeFinalFlows() {
+void OrlinMCF::compute_final_flows() {
     auto& orignal_graph = network.getGraph();
 
-    NetworKit::Graph maxflow_graph(original_graph.upperNodeIdBound());
+    NetworKit::Graph maxflow_graph(max_nodeid, true, true);
+    DBG("positive edges\n");
     original_graph.forEdges([&](node u, node v) {
-        if (network.cost[{u, v}] - potential_computed[u] + potential_computed[v] == 0) {
-            maxflow_graph.addEdge(u, v, static_cast<double>(INT_MAX));
+        auto cost = network.cost[{u, v}];
+        
+        if (cost - potential_computed[u] + potential_computed[v] == 0) {
+            DBG(u << ' ' << v << '\n');
+            int max = std::numeric_limits<int>::max();
+            maxflow_graph.addEdge(u, v, max);
         }
     });
 
     node s = maxflow_graph.addNode();
     node t = maxflow_graph.addNode();
 
+    DBG("added edges\n");
     for (auto [key, value] : network.excess) {
         if (value > 0) {
-            maxflow_graph.addEdge(s, key, static_cast<double>(value));
+            DBG("added " << s << ' ' << key << '\n');
+            maxflow_graph.addEdge(s, key, value);
         } else if (value < 0) {
-            maxflow_graph.addEdge(key, t, static_cast<double>(value));
+            DBG("added " << key << ' ' << t << '\n');
+            maxflow_graph.addEdge(key, t, -value);
         }
     }
     maxflow.emplace(maxflow_graph, s, t);
     maxflow->run();
+    DBG(maxflow->getFlowSize() << '\n');
     min_cost = 0;
     maxflow_graph.forEdges([&](node u, node v) {
+        DBG("flow " << u << ' ' << v  << ": " << maxflow->get_flow({u, v}) << '\n');
         if (u == s || v == t) return;
+        
         min_cost += network.cost[{u, v}] * maxflow->get_flow({u, v});
     });
 }
