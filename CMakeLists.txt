@@ -8,7 +8,12 @@ set(PROJECT_NAME koala-networkit)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-set(KOALA_CXX_FLAGS "-Wall -Wextra -Wstrict-aliasing -Wpedantic -Werror -Wunreachable-code -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wmissing-include-dirs -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wsign-promo -Wstrict-overflow=2 -Wswitch-default -Wundef -Wno-error -fpermissive -fdiagnostics-show-option -O3 -pthread")
+set(KOALA_CXX_FLAGS "-Wall -Wextra -Wstrict-aliasing -Wpedantic -Werror -Wunreachable-code -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wmissing-include-dirs -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wsign-promo -Wstrict-overflow=2 -Wswitch-default -Wundef -Wno-error -fpermissive -fdiagnostics-show-option -pthread")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(KOALA_CXX_FLAGS "${KOALA_CXX_FLAGS} -g -O0")
+else()
+    set(KOALA_CXX_FLAGS "${KOALA_CXX_FLAGS} -O3")
+endif()
 set(KOALA_LINKER_FLAGS "")
 message("Compiled with ${CMAKE_CXX_COMPILER_ID}: ${CMAKE_CXX_COMPILER}")
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -19,7 +24,7 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(KOALA_LINKER_FLAGS "${KOALA_LINKER_FLAGS} -fopenmp")
 endif()
 
-set(CMAKE_CXX_CPPLINT cpplint --linelength=100 --extensions=cpp,hpp --filter=-legal/copyright,-build/c++20,-build/include,-build/namespaces,-build/header_guard,-runtime/references,-runtime/string --recursive --exclude=${CMAKE_SOURCE_DIR}/backup --exclude=${CMAKE_SOURCE_DIR}/build --exclude=${CMAKE_SOURCE_DIR}/input --exclude=${CMAKE_SOURCE_DIR}/lib --exclude=${CMAKE_SOURCE_DIR}/cpp/flow/maximum_flow/dynamic_tree/*)
+set(CMAKE_CXX_CPPLINT cpplint --linelength=100 --extensions=cpp,hpp --filter=-legal/copyright,-build/c++11,-build/c++17,-build/c++20,-runtime/references,-runtime/string --recursive --exclude=${CMAKE_SOURCE_DIR}/backup --exclude=${CMAKE_SOURCE_DIR}/build --exclude=${CMAKE_SOURCE_DIR}/input --exclude=${CMAKE_SOURCE_DIR}/lib --exclude=${CMAKE_SOURCE_DIR}/cpp/flow/maximum_flow/dynamic_tree/*)
 
 include(FetchContent)
 
@@ -48,6 +53,7 @@ FetchContent_MakeAvailable(csdp)
 #</Csdp>
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 
@@ -86,6 +92,7 @@ add_subdirectory(cpp)
 
 function(koala_make_test testname testfile)
     add_executable(${testname} ${CMAKE_CURRENT_LIST_DIR}/${testfile})
+    target_include_directories(${testname} PRIVATE "${CMAKE_SOURCE_DIR}")
     target_link_libraries(${testname} ${PROJECT_NAME} gtest gtest_main)
 
     set_target_properties(${testname} PROPERTIES
