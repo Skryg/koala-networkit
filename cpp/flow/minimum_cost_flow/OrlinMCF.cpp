@@ -41,6 +41,8 @@ void OrlinMCF::initialize() {
     }
     potential.assign(max_nodeid, 0);
     potential_computed = potential;
+    dist.assign(max_nodeid, {std::numeric_limits<int64_t>::max(), 0});
+    visited.assign(max_nodeid, false);
     edges.assign(2 * graph.numberOfEdges(), Edge());
     DBG("size" << edges.size() << '\n');
     int ptr = 0;
@@ -107,22 +109,23 @@ void OrlinMCF::contract_nodes(uint32_t u, uint32_t v) {
 }
 
 void OrlinMCF::push_no_excess(uint32_t edge_idx, int64_t amount) {
-    Edge& edge = edges[edge_idx];
-    edge.flow += amount;
+    edges[edge_idx].flow += amount;
     edges[edge_idx ^ 1].flow -= amount;
 }
 
-void OrlinMCF::find_optimal_delta(int64_t &delta) {
+int64_t OrlinMCF::find_optimal_delta(int64_t delta) {
     for (const Edge& edge : edges) {
         if (edge.flow != 0) {
-            return;
+            return delta;
         }
     }
-    int64_t maxExcess = 0;
+    int64_t newDelta = 1;
     for (int64_t excess : excess) {
-        maxExcess = std::max(maxExcess, excess);
+        while (newDelta < excess) {
+            newDelta <<= 1;
+        }
     }
-    delta = std::min(maxExcess, delta);
+    return newDelta;
 }
 
 void OrlinMCF::contraction_phase(int64_t delta) {
@@ -162,12 +165,9 @@ void OrlinMCF::uncontract_nodes_potential() {
 
 void OrlinMCF::augmenting_phase(uint32_t s, uint32_t t, int64_t delta) {
     DBG("augmenting from " << s << " to " << t << " value " << delta << '\n');
-    // This function would implement the augmenting phase of Orlin's algorithm.
-    // It would find augmenting paths and push flow until no more augmenting paths exist.
-    auto dist = dijkstra(s, delta);
+    dijkstra(s, delta);
     uint32_t ptr = t;
     while (ptr != s) {
-        DBG("push " << ptr << '\n');
         uint32_t edge_idx = dist[ptr].second;
         push_no_excess(edge_idx, delta);
         ptr = edges[edge_idx].from;
@@ -189,7 +189,7 @@ void OrlinMCF::run_impl() {
     int64_t delta = std::numeric_limits<int64_t>::max();
 
     while (is_imbalanced()) {
-        find_optimal_delta(delta);
+        delta = std::min(delta, find_optimal_delta(delta));
         DBG(delta << '\n');
         contraction_phase(delta);
 
@@ -197,7 +197,7 @@ void OrlinMCF::run_impl() {
 
         for (uint32_t i = 0; i < max_nodeid; i++) {
             if (excess[i] >= ALPHA*delta) {
-                DBG("Alpha delta: " << ALPHA*delta << '\n');
+                // DBG("Alpha delta: " << ALPHA*delta << '\n');
                 S.push(i);
             } else if (excess[i] <= -ALPHA*delta) {
                 T.push(i);
@@ -205,17 +205,17 @@ void OrlinMCF::run_impl() {
         }
 
         while (!S.empty() && !T.empty()) {
-            DBG("augmenting choosing\n");
+            // DBG("augmenting choosing\n");
             uint32_t s = S.top();
             uint32_t t = T.top();
 
             augmenting_phase(s, t, delta);
             if (excess[s] < ALPHA*delta) {
-                DBG("pop1\n");
+                // DBG("pop1\n");
                 S.pop();
             }
             if (excess[t] > -ALPHA*delta) {
-                DBG("pop1\n");
+                // DBG("pop1\n");
                 T.pop();
             }
         }
@@ -229,19 +229,19 @@ void OrlinMCF::run_impl() {
 
 
 
-std::vector<std::pair<int64_t, uint64_t>> OrlinMCF::dijkstra(uint32_t source, int64_t delta) {
-    // This function would implement Dijkstra's algorithm to find shortest paths from the source vertex.
-    // It would return a vector of distances from the source to all other vertices.
-    std::set<std::pair<int64_t, uint32_t>> pq;
-    
-    std::vector<std::pair<int64_t, uint64_t>> dist(max_nodeid, {std::numeric_limits<int64_t>::max(), 0});
+void OrlinMCF::dijkstra(uint32_t source, int64_t delta) {
+    std::priority_queue<std::pair<int64_t, uint32_t>,
+                        std::vector<std::pair<int64_t, uint32_t>>,
+                        std::greater<>> pq;
+
+    std::fill(dist.begin(), dist.end(), std::make_pair(std::numeric_limits<int64_t>::max(), uint64_t{0}));
+    std::fill(visited.begin(), visited.end(), false);
     dist[source] = {0, 0};
-    pq.insert({0, source});
-    std::vector<bool> visited(max_nodeid, false);
+    pq.push({0, source});
 
     while (!pq.empty()) {
-        auto [d, u] = *pq.begin();
-        pq.erase(pq.begin());
+        auto [d, u] = pq.top();
+        pq.pop();
 
         if (visited[u]) continue;
         visited[u] = true;
@@ -252,15 +252,12 @@ std::vector<std::pair<int64_t, uint64_t>> OrlinMCF::dijkstra(uint32_t source, in
                 int64_t new_dist = d + edge.cost - potential[u] + potential[edge.to];
                 // TODO: Optimize for uncapacitated vertices
                 if (new_dist < dist[edge.to].first) {
-                    pq.erase({dist[edge.to].first, edge.to});
                     dist[edge.to] = {new_dist, edge_idx};
-                    pq.insert({new_dist, edge.to});
+                    pq.push({new_dist, edge.to});
                 }
             }
         }
     }
-
-    return dist;
 }
 
 void OrlinMCF::compute_final_flows() {
@@ -272,7 +269,6 @@ void OrlinMCF::compute_final_flows() {
         auto cost = network.cost[{u, v}];
         
         if (cost - potential_computed[u] + potential_computed[v] == 0) {
-            DBG(u << ' ' << v << '\n');
             int max = std::numeric_limits<int>::max();
             maxflow_graph.addEdge(u, v, max);
         }
@@ -284,10 +280,8 @@ void OrlinMCF::compute_final_flows() {
     DBG("added edges\n");
     for (auto [key, value] : network.excess) {
         if (value > 0) {
-            DBG("added " << s << ' ' << key << '\n');
             maxflow_graph.addEdge(s, key, value);
         } else if (value < 0) {
-            DBG("added " << key << ' ' << t << '\n');
             maxflow_graph.addEdge(key, t, -value);
         }
     }

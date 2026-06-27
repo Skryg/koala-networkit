@@ -63,7 +63,7 @@ void read_edge(std::ifstream &graphFile, NetworKit::Graph &graph,
             break;
         case Format::min: 
         graphFile >> u >> v >> _ >> w >> cost;
-            graph.addEdge(u - 1, v - 1, w);
+            graph.increaseWeight(u - 1, v - 1, w);
             costs[{u - 1, v - 1}] = cost;
             break;
         case Format::max:
@@ -89,7 +89,7 @@ void read_node(std::ifstream &graphFile, NetworKit::Graph &graph,
     switch (convert[format]) {
         case Format::min: 
             graphFile >> v >> supply;
-            b[v] = supply;
+            b[v - 1] = supply;
             break;
         default:
             graphFile >> v >> label;
@@ -124,8 +124,7 @@ std::tuple<NetworKit::Graph,
     char command = 0;
     std::string format;
     NetworKit::count nodes = 0, edges = 0;
-    NetworKit::node s, t;
-    s = t = NetworKit::none;
+    NetworKit::node _;
     std::unordered_map<NetworKit::node, long long> b;
     std::unordered_map<NetworKit::Edge, long long> costs;
 
@@ -152,7 +151,7 @@ std::tuple<NetworKit::Graph,
                 read_edge(graphFile, graph, costs, format);
                 break;
             case 'n':
-                read_node(graphFile, graph, b, s, t, format);
+                read_node(graphFile, graph, b, _, _, format);
                 break;
             default:
                 throw std::runtime_error("Unknown line type");
@@ -160,7 +159,7 @@ std::tuple<NetworKit::Graph,
         graphFile.ignore(MAX, '\n');
     }
     graph.shrinkToFit();
-    return std::make_tuple(graph, costs, b, s, t);
+    return std::make_tuple(graph, costs, b, _, _);
 }
 
 std::tuple<NetworKit::Graph, NetworKit::node, NetworKit::node> DimacsGraphReader::read_all(

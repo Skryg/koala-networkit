@@ -1,6 +1,14 @@
 #include <flow/minimum_cost_flow/MCFlowNetwork.hpp>
 #include <limits>
 
+// #define DEBUG_DUMP
+
+#ifdef DEBUG_DUMP
+#define DBG(x) std::cerr << x
+#else 
+#define DBG(x)
+#endif
+
 using node = NetworKit::node;
 using Edge = NetworKit::Edge;
 using Graph = NetworKit:: Graph;
@@ -11,7 +19,7 @@ namespace Koala {
     MCFlowNetwork::MCFlowNetwork(Graph const& g, bool circulation = false) : graph(g) {
         if (graph.isWeighted()) {
             graph.forEdges([&](node u, node v, NetworKit::edgeweight weight, NetworKit::edgeid _) {
-                capacity[{u, v}] = static_cast<int64>(weight < 0 ? weight - 0.5 : weight + 0.5);
+                capacity[{u, v}] += static_cast<int64>(weight < 0 ? weight - 0.5 : weight + 0.5);
             });
         } else {
             graph.forEdges([&](node u, node v) {
@@ -44,7 +52,7 @@ namespace Koala {
     void MCFlowNetwork::addEdge(node s, node t, int64 cost = 0, int64 capacity = 0) {
         graph.addEdge(s, t, capacity);
         if (graph.isWeighted())
-            this->capacity[{s,t}] = capacity;
+            this->capacity[{s,t}] += capacity;
         this->cost[{s,t}] = cost; 
     }
     
@@ -54,13 +62,12 @@ namespace Koala {
             maxCost = std::max(maxCost, (int64)std::abs(cost));
         }
         
-        maxCost *= graph.numberOfEdges() + 1;
-        
-        int64 sumB{0};
-        for (auto [nd, bval] : excess) {
-            if (bval > 0) sumB += bval;
-        }
+        DBG("max cost: " << maxCost << '\n');
 
+        maxCost *=  graph.numberOfEdges() + 1;
+        
+        DBG("after multiplying: " << maxCost << '\n');
+   
         NetworKit::node sx = graph.addNode();
         NetworKit::node sx2 = graph.addNode();
         graph.addEdge(sx, sx2, std::numeric_limits<NetworKit::edgeweight>::max());
@@ -94,6 +101,7 @@ namespace Koala {
         });
 
         graph = g;
+        uncapacitated = true;
     }
 
     void MCFlowNetwork::makeCostsNonNegative() {

@@ -43,7 +43,7 @@ void SuccessiveApproxMCC::push(uint64_t eid) {
 }
 
 void SuccessiveApproxMCC::relabel(NetworKit::node const& u) {
-    double mi = std::numeric_limits<double>::max();
+    double mi = std::numeric_limits<double>::infinity();
 
     for (uint64_t eid : neigh_list[u]) {
         if (uf(eid) > 0) {
@@ -120,32 +120,19 @@ void SuccessiveApproxMCC::initialize() {
     int ptr = 0;
     
     neigh_list.assign(nodeBound, std::vector<uint64_t>());
-    std::set<std::pair<NetworKit::node, NetworKit::node>> present;
     int64_t maxCost = 0;
 
-
-    graph.forNodes([&](node u) { 
+    graph.forNodes([&](node u) {
         graph.forNeighborsOf(u, [&](node v) {
-            node x = std::min(u, v);
-            node y = std::max(u, v);
-            if (present.find({x, y}) != present.end())
-                return;
-            present.insert({x, y});
-
             uint32_t from = static_cast<uint32_t>(u);
             uint32_t to = static_cast<uint32_t>(v);
-            int64_t cost = network.cost[{u, v}] - network.cost[{v, u}];
+            int64_t cost = network.cost[{u, v}];
             int64_t capacity = network.capacity[{u, v}];
-            int64_t capacity2 = network.capacity[{v, u}];
 
             neigh_list[from].push_back(edges.size());
-
-            int64_t fl = std::min(capacity, (int64_t)0);
-            fl = capacity2 < 0 ? -capacity2 : fl;
-
             edges.push_back({
                 from, to,
-                cost, capacity, fl
+                cost, capacity, 0LL
             });
 
             maxCost = std::max(maxCost, std::abs(cost));
@@ -153,9 +140,8 @@ void SuccessiveApproxMCC::initialize() {
             neigh_list[to].push_back(edges.size());
             edges.push_back({
                 to, from,
-                -cost, capacity2, -fl
+                -cost, 0LL, 0LL
             });
-
         });
     });
 
