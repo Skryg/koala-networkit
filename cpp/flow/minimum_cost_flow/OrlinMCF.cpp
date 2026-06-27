@@ -29,7 +29,6 @@ void OrlinMCF::initialize() {
     uncapacitated_nodes_bounds.first = network.getGraph().upperNodeIdBound();
     network.makeUncapacitated();
     uncapacitated_nodes_bounds.second = network.getGraph().upperNodeIdBound();
-    network.makeCostsNonNegative();
     network.makeConnected();
     auto& graph = network.getGraph();
     nodes_number = graph.numberOfNodes();
@@ -71,6 +70,7 @@ void OrlinMCF::initialize() {
         });
     });
     original_edges = edges;
+    make_reduced_costs_nonnegative();
 }
 
 bool OrlinMCF::is_added_uncapacitated(node v) const {
@@ -185,7 +185,7 @@ void OrlinMCF::augmenting_phase(uint32_t s, uint32_t t, int64_t delta) {
 
 void OrlinMCF::run_impl() {
     initialize();
-    
+
     int64_t delta = std::numeric_limits<int64_t>::max();
 
     while (is_imbalanced()) {
@@ -257,6 +257,28 @@ void OrlinMCF::dijkstra(uint32_t source, int64_t delta) {
                 }
             }
         }
+    }
+}
+
+void OrlinMCF::make_reduced_costs_nonnegative() {
+    std::vector<int64_t> d(max_nodeid, 0);
+
+    bool changed = true;
+    for (uint32_t iter = 0; iter < nodes_number && changed; ++iter) {
+        changed = false;
+        for (const Edge& edge : edges) {
+            if (edge.from == edge.to || edge.capacity <= edge.flow) continue;
+            int64_t len = edge.cost - potential[edge.from] + potential[edge.to];
+            if (d[edge.from] + len < d[edge.to]) {
+                d[edge.to] = d[edge.from] + len;
+                changed = true;
+            }
+        }
+    }
+
+    for (uint32_t v = 0; v < max_nodeid; ++v) {
+        potential[v] -= d[v];
+        potential_computed[v] -= d[v];
     }
 }
 

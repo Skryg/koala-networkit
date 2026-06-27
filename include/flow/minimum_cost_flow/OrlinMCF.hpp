@@ -9,6 +9,7 @@
 #include <climits>
 #include <vector>
 #include <set>
+#include <queue>
 #include <optional>
 
 namespace Koala {
@@ -27,6 +28,8 @@ class OrlinMCF final : public MinimumCostFlow {
    // potential that is computed for the original network
    std::vector<int64_t> potential_computed;
    std::vector<int64_t> excess;
+   std::vector<std::pair<int64_t, uint64_t>> dist;
+   std::vector<bool> visited;
    uint32_t nodes_number;
    uint32_t max_nodeid;
    // Storing with costs for potential resotration  
@@ -37,14 +40,15 @@ class OrlinMCF final : public MinimumCostFlow {
    void run_impl() override;
    bool is_imbalanced();
    void initialize();
-   void find_optimal_delta(int64_t &delta);
+   int64_t find_optimal_delta(int64_t delta);
    void push_no_excess(uint32_t edge_idx, int64_t amount); 
    void contract_nodes(uint32_t u, uint32_t v);
    void apply_potential();
    void contraction_phase(int64_t delta);
    void augmenting_phase(uint32_t s, uint32_t t, int64_t delta);
    void uncontract_nodes_potential();
-   std::vector<std::pair<int64_t, uint64_t>> dijkstra(uint32_t source, int64_t delta);
+   void dijkstra(uint32_t source, int64_t delta);
+   void make_reduced_costs_nonnegative();
    std::stack<std::pair<NetworKit::node, NetworKit::node>> contractions;
    std::pair<NetworKit::node, NetworKit::node> uncapacitated_nodes_bounds;
    bool is_added_uncapacitated(NetworKit::node v) const;
