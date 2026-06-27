@@ -193,6 +193,22 @@ void OrlinMCF::run_impl() {
         DBG(delta << '\n');
         contraction_phase(delta);
 
+        auto [uncap_begin, uncap_end] = uncapacitated_nodes_bounds;
+        for (uint32_t u = uncap_begin; u < uncap_end; u++) {
+            for (uint32_t edge_idx : neigh_list[u]) {
+                uint32_t in_arc = edge_idx ^ 1;
+                const Edge& e = edges[in_arc];
+                uint32_t v = e.from;
+                while (excess[u] <= -ALPHA*delta && excess[v] >= ALPHA*delta
+                       && e.cost - potential[v] + potential[u] == 0
+                       && e.capacity >= e.flow + delta) {
+                    push_no_excess(in_arc, delta);
+                    excess[v] -= delta;
+                    excess[u] += delta;
+                }
+            }
+        }
+
         std::stack<uint32_t> S, T;
 
         for (uint32_t i = 0; i < max_nodeid; i++) {
