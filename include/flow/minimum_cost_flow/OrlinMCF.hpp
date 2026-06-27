@@ -34,7 +34,7 @@ class OrlinMCF final : public MinimumCostFlow {
    uint32_t max_nodeid;
    // Storing with costs for potential resotration  
    std::stack<std::tuple<uint32_t, uint32_t, int64_t>> contracted_nodes;
-   const double ALPHA = 0.9;
+   const double ALPHA = 0.7;
 
    std::optional<Koala::PushRelabel> maxflow;
    void run_impl() override;

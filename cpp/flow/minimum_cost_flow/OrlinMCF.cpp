@@ -197,7 +197,6 @@ void OrlinMCF::run_impl() {
 
         for (uint32_t i = 0; i < max_nodeid; i++) {
             if (excess[i] >= ALPHA*delta) {
-                // DBG("Alpha delta: " << ALPHA*delta << '\n');
                 S.push(i);
             } else if (excess[i] <= -ALPHA*delta) {
                 T.push(i);
@@ -205,17 +204,14 @@ void OrlinMCF::run_impl() {
         }
 
         while (!S.empty() && !T.empty()) {
-            // DBG("augmenting choosing\n");
             uint32_t s = S.top();
             uint32_t t = T.top();
 
             augmenting_phase(s, t, delta);
             if (excess[s] < ALPHA*delta) {
-                // DBG("pop1\n");
                 S.pop();
             }
             if (excess[t] > -ALPHA*delta) {
-                // DBG("pop1\n");
                 T.pop();
             }
         }
@@ -249,11 +245,25 @@ void OrlinMCF::dijkstra(uint32_t source, int64_t delta) {
         for (uint32_t edge_idx : neigh_list[u]) {
             const Edge& edge = edges[edge_idx];
             if (edge.capacity >= edge.flow + delta) {
-                int64_t new_dist = d + edge.cost - potential[u] + potential[edge.to];
-                // TODO: Optimize for uncapacitated vertices
-                if (new_dist < dist[edge.to].first) {
-                    dist[edge.to] = {new_dist, edge_idx};
-                    pq.push({new_dist, edge.to});
+                uint32_t v = edge.to;
+                int64_t new_dist = d + edge.cost - potential[u] + potential[v];
+                if (new_dist < dist[v].first) {
+                    dist[v] = {new_dist, edge_idx};
+                    if (is_added_uncapacitated(v)) {
+                        for (uint32_t e2 : neigh_list[v]) {
+                            const Edge& edge2 = edges[e2];
+                            if (edge2.to != u && edge2.capacity >= edge2.flow + delta) {
+                                uint32_t k = edge2.to;
+                                int64_t nd2 = new_dist + edge2.cost - potential[v] + potential[k];
+                                if (nd2 < dist[k].first) {
+                                    dist[k] = {nd2, e2};
+                                    pq.push({nd2, k});
+                                }
+                            }
+                        }
+                    } else {
+                        pq.push({new_dist, v});
+                    }
                 }
             }
         }
@@ -261,13 +271,16 @@ void OrlinMCF::dijkstra(uint32_t source, int64_t delta) {
 }
 
 void OrlinMCF::make_reduced_costs_nonnegative() {
-    std::vector<int64_t> d(max_nodeid, 0);
+    constexpr int64_t INF = std::numeric_limits<int32_t>::max();
+    std::vector<int64_t> d(max_nodeid, INF);
+    d[0] = 0;
 
     bool changed = true;
     for (uint32_t iter = 0; iter < nodes_number && changed; ++iter) {
         changed = false;
         for (const Edge& edge : edges) {
             if (edge.from == edge.to || edge.capacity <= edge.flow) continue;
+            if (d[edge.from] == INF) continue;
             int64_t len = edge.cost - potential[edge.from] + potential[edge.to];
             if (d[edge.from] + len < d[edge.to]) {
                 d[edge.to] = d[edge.from] + len;
@@ -277,6 +290,7 @@ void OrlinMCF::make_reduced_costs_nonnegative() {
     }
 
     for (uint32_t v = 0; v < max_nodeid; ++v) {
+        if (d[v] == INF) continue;
         potential[v] -= d[v];
         potential_computed[v] -= d[v];
     }
