@@ -86,10 +86,10 @@ namespace Koala {
         NetworKit::Graph g(graph.upperNodeIdBound(), true, true);
 
         graph.forEdges([&](node u, node v, NetworKit::edgeweight weight) {
-            node w = g.addNode();
             int64 cap = capacity[{u, v}];
-            if (cap == std::numeric_limits<int64>::max())
+            if (cap <= 0 || cap == std::numeric_limits<int64>::max())
                 return;
+            node w = g.addNode();
             excess[v] += cap;
             excess[w] -= cap;
             capacity.erase({u, v});

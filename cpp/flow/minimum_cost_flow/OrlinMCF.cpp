@@ -206,6 +206,13 @@ void OrlinMCF::run_impl() {
                     excess[v] -= delta;
                     excess[u] += delta;
                 }
+                while (excess[v] <= -ALPHA*delta && excess[u] >= ALPHA*delta
+                       && edges[edge_idx].cost - potential[u] + potential[v] == 0
+                       && edges[edge_idx].capacity >= edges[edge_idx].flow + delta) {
+                    push_no_excess(edge_idx, delta);
+                    excess[u] -= delta;
+                    excess[v] += delta;
+                }
             }
         }
 
