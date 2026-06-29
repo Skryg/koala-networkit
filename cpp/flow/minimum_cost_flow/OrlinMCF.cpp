@@ -200,14 +200,14 @@ void OrlinMCF::run_impl() {
                 const Edge& e = edges[in_arc];
                 uint32_t v = e.from;
                 while (excess[u] <= -ALPHA*delta && excess[v] >= ALPHA*delta
-                       && e.cost - potential[v] + potential[u] == 0
+                       && e.cost == 0
                        && e.capacity >= e.flow + delta) {
                     push_no_excess(in_arc, delta);
                     excess[v] -= delta;
                     excess[u] += delta;
                 }
                 while (excess[v] <= -ALPHA*delta && excess[u] >= ALPHA*delta
-                       && edges[edge_idx].cost - potential[u] + potential[v] == 0
+                       && edges[edge_idx].cost == 0
                        && edges[edge_idx].capacity >= edges[edge_idx].flow + delta) {
                     push_no_excess(edge_idx, delta);
                     excess[u] -= delta;
