@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <networkit/base/Algorithm.hpp>
-#include <networkit/graph/Graph.hpp>
+#include <networkit/graph/AdjListGraph.hpp>
 
 #include <matching/gaussian_matching/utils.hpp>
 
@@ -18,7 +18,7 @@ namespace Koala {
 class BipartiteGaussianMatching : public NetworKit::Algorithm {
  public:
   explicit BipartiteGaussianMatching(const NetworKit::Graph &G);
-  void run();
+  void run() override;
   Matching getMatching();
 
   NetworKit::Graph G;

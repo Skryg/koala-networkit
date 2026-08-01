@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <networkit/graph/Graph.hpp>
+#include <networkit/graph/AdjListGraph.hpp>
 
 #include "flow/MaximumFlow.hpp"
 #include "flow/electrical_flow/FlowNetwork.hpp"
@@ -45,7 +45,10 @@ class ElectricalFlow final : public MaximumFlow {
     /**
      * @return The computed flow matrix indexed by edge endpoints.
      */
-    const std::vector<std::vector<double>> &getFlow() const { return flow; }
+    const std::vector<std::vector<double>> &getFlow() const {
+        assureFinished();
+        return flow;
+    }
 
  private:
     bool route_flow();

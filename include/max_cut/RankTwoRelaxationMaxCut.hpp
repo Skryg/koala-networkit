@@ -26,10 +26,10 @@ class RankTwoRelaxationMaxCut final : public MaxCut {
     /**
      * Executes the Max-Cut problem solver.
      */
-    void run();
+    void run() override;
 
  private:
-    static const double alpha = 0.001;
+    static constexpr double alpha = 0.001;
     static const int maxIterations = 100000;
     std::vector<double> theta;
 

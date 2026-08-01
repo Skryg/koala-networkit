@@ -1,6 +1,6 @@
 #include <NTL/ZZ_p.h>
 
-#include <networkit/graph/Graph.hpp>
+#include <networkit/graph/AdjListGraph.hpp>
 
 #include "matching/gaussian_matching/NaiveGaussElimination.hpp"
 #include "matching/gaussian_matching/NaiveGaussianMatching.hpp"
@@ -11,16 +11,21 @@ static MatZp generateMatrix(const NetworKit::Graph &G);
 
 NaiveGaussianMatching::NaiveGaussianMatching(const NetworKit::Graph &G1) : G(G1) {}
 
-Matching NaiveGaussianMatching::getMatching() { return M; }
+Matching NaiveGaussianMatching::getMatching() {
+  assureFinished();
+  return M;
+}
 
 void NaiveGaussianMatching::run() {
+  initZp(ZP_MOD);
   M.clear();
   MatZp AG = generateMatrix(G);
   auto M1 = NaiveGaussElimination::pivotElimination(
       AG, [&AG](int r, int c) { return AG[r][c] != 0; });
-  for (int c = 0; c < M1.size(); c++) {
-    M.insert({c, M1[c]});
+  for (std::size_t c = 0; c < M1.size(); c++) {
+    M.insert({static_cast<int>(c), M1[c]});
   }
+  hasRun = true;
 }
 
 static MatZp generateMatrix(const NetworKit::Graph &G) {

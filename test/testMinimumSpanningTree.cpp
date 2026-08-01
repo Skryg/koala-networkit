@@ -8,6 +8,7 @@
 #include <networkit/graph/GraphTools.hpp>
 #include "graph/GraphTools.hpp"
 #include "mst/MinimumSpanningTree.hpp"
+
 #include "test/helpers.hpp"
 
 struct SpanningTreeParameters {

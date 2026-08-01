@@ -8,13 +8,14 @@ set(PROJECT_NAME koala-networkit)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-set(KOALA_CXX_FLAGS "-Wall -Wextra -Wstrict-aliasing -Wpedantic -Werror -Wunreachable-code -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wmissing-include-dirs -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wsign-promo -Wstrict-overflow=2 -Wswitch-default -Wundef -Wno-error -fpermissive -fdiagnostics-show-option -pthread")
+set(KOALA_CXX_FLAGS "-Wall -Wextra -Wstrict-aliasing -Wpedantic -Wno-error -Wunreachable-code -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wmissing-include-dirs -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wsign-promo -Wstrict-overflow=2 -Wswitch-default -Wundef -fpermissive -fdiagnostics-show-option -pthread")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(KOALA_CXX_FLAGS "${KOALA_CXX_FLAGS} -g -O0")
 else()
     set(KOALA_CXX_FLAGS "${KOALA_CXX_FLAGS} -O3")
 endif()
 set(KOALA_LINKER_FLAGS "")
+
 message("Compiled with ${CMAKE_CXX_COMPILER_ID}: ${CMAKE_CXX_COMPILER}")
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(KOALA_CXX_FLAGS "${KOALA_CXX_FLAGS} -ferror-limit=5")
@@ -24,7 +25,7 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(KOALA_LINKER_FLAGS "${KOALA_LINKER_FLAGS} -fopenmp")
 endif()
 
-set(CMAKE_CXX_CPPLINT cpplint --linelength=100 --extensions=cpp,hpp --filter=-legal/copyright,-build/c++11,-build/c++17,-build/c++20,-runtime/references,-runtime/string --recursive --exclude=${CMAKE_SOURCE_DIR}/backup --exclude=${CMAKE_SOURCE_DIR}/build --exclude=${CMAKE_SOURCE_DIR}/input --exclude=${CMAKE_SOURCE_DIR}/lib)
+set(CMAKE_CXX_CPPLINT cpplint --quiet --linelength=100 --extensions=cpp,hpp --filter=-legal/copyright,-build/c++11,-build/c++17,-build/c++20,-runtime/references,-runtime/string --recursive --exclude=${CMAKE_SOURCE_DIR}/backup --exclude=${CMAKE_SOURCE_DIR}/build --exclude=${CMAKE_SOURCE_DIR}/input --exclude=${CMAKE_SOURCE_DIR}/lib)
 
 include(FetchContent)
 
@@ -40,6 +41,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(networkit)
 #</networKit>
+
+set(NETWORKIT_SOURCE_DIRS
+  "${CMAKE_SOURCE_DIR}/lib/networkit/include"
+  "${CMAKE_SOURCE_DIR}/lib/networkit/extlibs/dhb/include"
+  "${CMAKE_SOURCE_DIR}/lib/networkit/extlibs/ttmath"
+  "${CMAKE_SOURCE_DIR}/lib/networkit/extlibs/tlx"
+)
 
 #<Csdp>
 FetchContent_Declare(
@@ -67,16 +75,22 @@ set_target_properties(csdp_lib PROPERTIES
     LINK_FLAGS ${KOALA_LINKER_FLAGS})
 add_dependencies(csdp_lib csdp)
 
-include_directories("${CMAKE_SOURCE_DIR}/include")
-
 option(KOALA_BUILD_SHARED "Build shared library" OFF)
 option(KOALA_BUILD_TESTS "Build tests" ON)
 option(KOALA_BUILD_BENCHMARKS "Build benchmarks" ON)
 
 function(koala_add_module modname)
     foreach(file ${ARGN})
-        target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/${file})
+        target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${file})
     endforeach()
+endfunction()
+
+function(koala_common_options target)
+    target_include_directories(${target} PUBLIC "${CMAKE_SOURCE_DIR}/include")
+    target_include_directories(${target} SYSTEM PRIVATE ${NETWORKIT_SOURCE_DIRS})
+    set_target_properties(${target} PROPERTIES
+        COMPILE_FLAGS ${KOALA_CXX_FLAGS}
+        LINK_FLAGS ${KOALA_LINKER_FLAGS})
 endfunction()
 
 if(KOALA_BUILD_SHARED)
@@ -84,31 +98,26 @@ if(KOALA_BUILD_SHARED)
 else()
     add_library(${PROJECT_NAME} STATIC cpp/koala.cpp)
 endif()
-target_link_libraries(${PROJECT_NAME} networkit ntl Eigen3::Eigen boost_graph csdp_lib lapack blas gfortran quadmath)
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    COMPILE_FLAGS ${KOALA_CXX_FLAGS}
-    LINK_FLAGS ${KOALA_LINKER_FLAGS})
+koala_common_options(${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME}
+    networkit ntl Eigen3::Eigen boost_graph csdp_lib lapack blas gfortran quadmath)
 add_subdirectory(cpp)
 
 function(koala_make_test testname testfile)
-    add_executable(${testname} ${CMAKE_CURRENT_LIST_DIR}/${testfile})
+    add_test(NAME ${testname} COMMAND ${testname})
+    set_tests_properties(${testname} PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+    add_executable(${testname} ${testfile})
+    koala_common_options(${testname})
     target_include_directories(${testname} PRIVATE "${CMAKE_SOURCE_DIR}")
     target_link_libraries(${testname} ${PROJECT_NAME} gtest gtest_main)
-
-    set_target_properties(${testname} PROPERTIES
-        COMPILE_FLAGS ${KOALA_CXX_FLAGS}
-        LINK_FLAGS ${KOALA_LINKER_FLAGS})
-    add_test(${testname} ${testname})
 endfunction()
 
 function(koala_make_benchmark testname testfile scriptfile)
-    add_executable(${testname} ${CMAKE_CURRENT_LIST_DIR}/${testfile})
+    add_executable(${testname} ${testfile})
+    koala_common_options(${testname})
     target_link_libraries(${testname} ${PROJECT_NAME})
-    set_target_properties(${testname} PROPERTIES
-        COMPILE_FLAGS ${KOALA_CXX_FLAGS}
-        LINK_FLAGS ${KOALA_LINKER_FLAGS})
     add_custom_command(TARGET ${testname}
-        POST_BUILD COMMAND /bin/sh ${CMAKE_CURRENT_LIST_DIR}/${scriptfile} ${ARGN})
+        POST_BUILD COMMAND /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/${scriptfile} ${ARGN})
 endfunction()
 
 if(KOALA_BUILD_TESTS)

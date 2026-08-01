@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <networkit/distance/MultiTargetDijkstra.hpp>
-#include <networkit/graph/Graph.hpp>
+#include <networkit/graph/AdjListGraph.hpp>
 #include <networkit/graph/GraphTools.hpp>
 
 #include "shortest_path/planar/TopologyBasedHeap.hpp"
@@ -137,7 +137,6 @@ std::pair<NetworKit::edgeweight, NetworKit::node> TopologyHeap::top() {
 void TopologyHeap::batch_update(
     NetworKit::index batch_id, NetworKit::node node, NetworKit::edgeweight current_value) {
     auto batch = batches[batch_id];
-    NetworKit::index node_id = node_storage_index[node];
     std::deque<NetworKit::index> index_to_fix;
     for (auto b : batch) {
         auto storage_id = node_storage_index[b];

@@ -3,7 +3,7 @@
 #include <utility>
 #include <vector>
 
-#include <networkit/graph/Graph.hpp>
+#include <networkit/graph/AdjListGraph.hpp>
 
 namespace Koala {
 enum class NodeType {
@@ -35,6 +35,7 @@ class Cotree {
  private:
     std::vector<Conode> nodes;
     NetworKit::node root;
+
  public:
     Cotree();
 
