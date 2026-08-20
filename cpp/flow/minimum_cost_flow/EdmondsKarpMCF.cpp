@@ -1,14 +1,18 @@
 #include <flow/minimum_cost_flow/EdmondsKarpMCF.hpp>
-#include <shortest_path/Dijkstra.hpp>
-#include <vector>
+
 #include <climits>
 #include <iostream>
+#include <set>
+#include <stack>
+#include <vector>
+
+#include <shortest_path/Dijkstra.hpp>
 
 // #define DEBUG_DUMP
 
 #ifdef DEBUG_DUMP
 #define DBG(x) std::cerr << x
-#else 
+#else
 #define DBG(x)
 #endif
 
@@ -30,9 +34,9 @@ void EdmondsKarpMCF::initialize() {
     potential.assign(n, 0);
     edges.assign(2 * graph.numberOfEdges(), Edge());
     int ptr = 0;
-    
+
     neigh_list.assign(n, std::vector<uint32_t>());
-    graph.forNodes([&](node u) { 
+    graph.forNodes([&](node u) {
         graph.forNeighborsOf(u, [&](node v) {
             uint32_t from = static_cast<uint32_t>(u);
             uint32_t to = static_cast<uint32_t>(v);
@@ -46,7 +50,7 @@ void EdmondsKarpMCF::initialize() {
 
             neigh_list[to].push_back(2*ptr+1);
             edges[2*ptr + 1] = {
-                to, from, 
+                to, from,
                 -cost, 0LL, 0LL
             };
             ++ptr;
@@ -55,7 +59,7 @@ void EdmondsKarpMCF::initialize() {
 
 
     for (int i = 0; i < edges.size(); ++i) {
-        DBG(i << " -> from: " << edges[i].from 
+        DBG(i << " -> from: " << edges[i].from
             << " to: " << edges[i].to << " capacity: " << edges[i].capacity
             << " cost: " << edges[i].cost << '\n');
     }
@@ -74,7 +78,7 @@ std::vector<std::pair<int64_t, uint64_t>> EdmondsKarpMCF::dijkstra(uint32_t sour
 
         if (visited[u]) continue;
         visited[u] = true;
-        
+
         for (uint32_t edge_idx : neigh_list[u]) {
             const Edge& edge = edges[edge_idx];
             if (edge.capacity >= edge.flow + delta) {
@@ -103,10 +107,10 @@ void EdmondsKarpMCF::augmenting_phase(uint32_t s, uint32_t t, int64_t delta) {
     uint32_t ptr = t;
     while (s != ptr) {
         auto [_, edgeid] = dist[ptr];
-        DBG("From: "<<edges[edgeid].from << " To: " << edges[edgeid].to << " Residual cap: " <<  edges[edgeid].capacity-edges[edgeid].flow << '\n');
+        DBG("From: " << edges[edgeid].from << " To: " << edges[edgeid].to
+            << " Residual cap: " << edges[edgeid].capacity - edges[edgeid].flow << '\n');
         send(edgeid, delta);
         ptr = edges[edgeid].from;
-
     }
     excess[t] += delta;
     excess[s] -= delta;
@@ -150,9 +154,9 @@ void EdmondsKarpMCF::delta_scaling_phase(int64_t delta) {
 
 void EdmondsKarpMCF::run_impl() {
     initialize();
-    
-    int64_t delta{1}; 
-    int i=0;
+
+    int64_t delta{1};
+    int i = 0;
     DBG("excess\n");
     for (auto e : excess) {
         DBG(i++ <<": " << e <<'\n');
@@ -170,7 +174,7 @@ void EdmondsKarpMCF::run_impl() {
     for (const Edge& edge : edges) {
         computed_flow[{edge.from, edge.to}] = edge.flow;
         min_cost += edge.flow * edge.cost;
-    } 
+    }
     min_cost /= 2;
 }
 

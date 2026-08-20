@@ -1,13 +1,21 @@
 #include <flow/minimum_cost_flow/OrlinMCF.hpp>
+
+#include <algorithm>
+#include <functional>
+#include <limits>
+#include <queue>
+#include <stack>
+#include <utility>
+#include <vector>
+
 #include <flow/KingRaoTarjanMaximumFlow.hpp>
 #include <shortest_path/Dijkstra.hpp>
-#include <algorithm>
 
 // #define DEBUG_DUMP
 
 #ifdef DEBUG_DUMP
 #define DBG(x) std::cerr << x
-#else 
+#else
 #define DBG(x)
 #endif
 
@@ -19,8 +27,8 @@ using int64 = std::int64_t;
 namespace Koala {
 
 int64 OrlinMCF::getFlow(const NetworKit::Edge& edge) {
-    if (maxflow.has_value()) { 
-        return maxflow->get_flow({edge.u, edge.v});   
+    if (maxflow.has_value()) {
+        return maxflow->get_flow({edge.u, edge.v});
     }
     return 0;
 }
@@ -45,10 +53,10 @@ void OrlinMCF::initialize() {
     edges.assign(2 * graph.numberOfEdges(), Edge());
     DBG("size" << edges.size() << '\n');
     int ptr = 0;
-    
+
     neigh_list.assign(max_nodeid, std::vector<uint32_t>());
 
-    graph.forNodes([&](node u) { 
+    graph.forNodes([&](node u) {
         graph.forNeighborsOf(u, [&](node v) {
             DBG(u << ' ' << v << ' ' << 2*ptr << '\n');
             uint32_t from = static_cast<uint32_t>(u);
@@ -63,7 +71,7 @@ void OrlinMCF::initialize() {
 
             neigh_list[to].push_back(2*ptr+1);
             edges[2*ptr + 1] = {
-                to, from, 
+                to, from,
                 -cost, 0LL, 0LL
             };
             ++ptr;
@@ -84,7 +92,7 @@ void OrlinMCF::apply_potential() {
     }
     std::fill(potential.begin(), potential.end(), 0);
 }
-    
+
 void OrlinMCF::contract_nodes(uint32_t u, uint32_t v) {
     if (u > v) std::swap(u, v);
     for (uint32_t edge_idx : neigh_list[v]) {
@@ -134,14 +142,13 @@ void OrlinMCF::contraction_phase(int64_t delta) {
         const Edge& edge = edges[i];
         if (edge.from != edge.to && edge.flow >= 3 * delta * nodes_number) {
             contract_nodes(edge.from, edge.to);
-            // { u, v, edge_cost } 
+            // { u, v, edge_cost }
             contracted_nodes.push({edge.from, edge.to, original_edges[i].cost});
         }
     }
-    
 }
 
-bool OrlinMCF::is_imbalanced() { 
+bool OrlinMCF::is_imbalanced() {
     for (const int64_t& supply : excess) {
         if (supply != 0) {
             return true;
@@ -156,7 +163,7 @@ void OrlinMCF::uncontract_nodes_potential() {
         contracted_nodes.pop();
 
         if (u < v) {
-            potential_computed[v] = potential_computed[u] - cost; 
+            potential_computed[v] = potential_computed[u] - cost;
         } else {
             potential_computed[u] = potential_computed[v] + cost;
         }
@@ -253,7 +260,9 @@ void OrlinMCF::dijkstra(uint32_t source, int64_t delta) {
                         std::vector<std::pair<int64_t, uint32_t>>,
                         std::greater<>> pq;
 
-    std::fill(dist.begin(), dist.end(), std::make_pair(std::numeric_limits<int64_t>::max(), uint64_t{0}));
+    std::fill(
+        dist.begin(), dist.end(),
+        std::make_pair(std::numeric_limits<int64_t>::max(), uint64_t{0}));
     std::fill(visited.begin(), visited.end(), false);
     dist[source] = {0, 0};
     pq.push({0, source});
@@ -326,7 +335,7 @@ void OrlinMCF::compute_final_flows() {
     DBG("positive edges\n");
     original_graph.forEdges([&](node u, node v) {
         auto cost = network.cost[{u, v}];
-        
+
         if (cost - potential_computed[u] + potential_computed[v] == 0) {
             int max = std::numeric_limits<int>::max();
             maxflow_graph.addEdge(u, v, max);
@@ -351,7 +360,7 @@ void OrlinMCF::compute_final_flows() {
     maxflow_graph.forEdges([&](node u, node v) {
         DBG("flow " << u << ' ' << v  << ": " << maxflow->get_flow({u, v}) << '\n');
         if (u == s || v == t) return;
-        
+
         min_cost += network.cost[{u, v}] * maxflow->get_flow({u, v});
     });
 }

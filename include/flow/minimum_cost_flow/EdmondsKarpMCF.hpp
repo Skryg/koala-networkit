@@ -1,8 +1,10 @@
 #pragma once
 
-#include <flow/MinimumCostFlow.hpp>
 #include <algorithm>
+#include <unordered_map>
 #include <vector>
+
+#include <flow/MinimumCostFlow.hpp>
 
 namespace Koala {
 
@@ -10,7 +12,7 @@ class EdmondsKarpMCF final : public MinimumCostFlow {
   struct Edge {
       uint32_t from, to;
       int64_t cost, capacity, flow;
-  }; 
+  };
   std::vector<Edge> edges;
   std::vector<std::vector<uint32_t>> neigh_list;
   std::vector<int64_t> b, excess;
@@ -25,7 +27,7 @@ class EdmondsKarpMCF final : public MinimumCostFlow {
   void send(std::uint64_t, std::int64_t);
   std::vector<std::pair<int64_t, uint64_t>> dijkstra(uint32_t source, int64_t delta);
 
- public: 
+ public:
   EdmondsKarpMCF(MCFlowNetwork const& network) : MinimumCostFlow(network) {}
   int64_t getFlow(NetworKit::Edge const&) override;
 };

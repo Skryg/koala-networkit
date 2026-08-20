@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <limits>
+#include <utility>
 #include <vector>
 
 #include "flow/PushRelabelMaximumFlow.hpp"
@@ -91,5 +92,4 @@ int getFlow(const std::pair<NetworKit::node, NetworKit::node>& edge) const {
         throw std::invalid_argument("Edge does not exist in the graph");
     }
     return flow.at(e);
-
 }  // namespace Koala

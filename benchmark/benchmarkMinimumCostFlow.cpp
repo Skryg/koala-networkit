@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <iostream>
 #include <map>
+#include <string>
+#include <unordered_map>
 
 #include <flow/MinimumCostFlow.hpp>
 #include <flow/minimum_cost_flow/EdmondsKarpMCF.hpp>
@@ -13,10 +15,9 @@
 template <typename FlowAlgorithm>
 void run_mcf_algorithm(const std::string &file_path, const std::string &name) {
     auto [G, costs, b] = Koala::DimacsGraphReader().read_minimum_cost_flow(file_path);
-    Koala::MCFlowNetwork network(G, 
+    Koala::MCFlowNetwork network(G,
         std::unordered_map<NetworKit::Edge, std::int64_t>(costs.begin(), costs.end()),
-        std::unordered_map<NetworKit::node, std::int64_t>(b.begin(), b.end())
-    );
+        std::unordered_map<NetworKit::node, std::int64_t>(b.begin(), b.end()));
     auto start = std::chrono::high_resolution_clock::now();
     auto minimum_cost_flow = FlowAlgorithm(network);
     minimum_cost_flow.run();

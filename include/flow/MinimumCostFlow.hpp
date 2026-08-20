@@ -16,7 +16,7 @@ struct MCFEdgeParams {
 
 class MinimumCostFlow : public NetworKit::Algorithm {
  public:
-    MinimumCostFlow(MCFlowNetwork const& network) : network(network) {}
+    explicit MinimumCostFlow(MCFlowNetwork const& network) : network(network) {}
     void run() {
         hasRun = false;
         run_impl();
@@ -26,8 +26,8 @@ class MinimumCostFlow : public NetworKit::Algorithm {
     virtual std::int64_t getFlow(NetworKit::Edge const&) = 0;
     std::int64_t getMinCost() const {
         return min_cost;
-    };
-    
+    }
+
  protected:
     virtual void run_impl() = 0;
     MCFlowNetwork network;

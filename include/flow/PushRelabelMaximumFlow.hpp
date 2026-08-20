@@ -2,6 +2,7 @@
 
 #include <map>
 #include <unordered_map>
+#include <utility>
 
 #include "flow/MaximumFlow.hpp"
 
@@ -25,7 +26,7 @@ class PushRelabelMaximumFlow : public MaximumFlow {
      * Compute a maximum flow using the subclass selection policy.
      */
     void run();
-    
+
     /**
      * Return the flow value on a given edge.
      *
