@@ -32,8 +32,7 @@ class KingRaoTarjanMaximumFlow final : public PushRelabelMaximumFlow {
      * Initialize the designator and compute a maximum flow.
      */
     void run();
-    int get_flow(const std::pair<NetworKit::node, NetworKit::node>&);
-
+    
  private:
     KRTEdgeDesignator edge_designator;
     KRTEdgeDesignator::Parameters edge_designator_parameters;
