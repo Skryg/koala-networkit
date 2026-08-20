@@ -10,8 +10,8 @@
 #include <utility>
 #include <vector>
 
+#include <flow/KingRaoTarjanMaximumFlow.hpp>
 #include <flow/MinimumCostFlow.hpp>
-#include <flow/PushRelabel.hpp>
 #include <networkit/graph/Attributes.hpp>
 
 namespace Koala {
@@ -38,7 +38,7 @@ class OrlinMCF final : public MinimumCostFlow {
   std::stack<std::tuple<uint32_t, uint32_t, int64_t>> contracted_nodes;
   const double ALPHA = 0.7;
 
-  std::optional<Koala::PushRelabel> maxflow;
+  std::optional<Koala::KingRaoTarjanMaximumFlow> maxflow;
   void run_impl() override;
   bool is_imbalanced();
   void initialize();

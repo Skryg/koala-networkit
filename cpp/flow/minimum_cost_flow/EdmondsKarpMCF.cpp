@@ -6,8 +6,6 @@
 #include <stack>
 #include <vector>
 
-#include <shortest_path/Dijkstra.hpp>
-
 // #define DEBUG_DUMP
 
 #ifdef DEBUG_DUMP
