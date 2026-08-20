@@ -12,20 +12,6 @@
 
 #include "test/helpers.hpp"
 
-// #define DEBUG_DUMP
-#ifdef DEBUG_DUMP
-#define DBG(x) std::cerr << x
-#else
-#define DBG(x)
-#endif
-
-struct MinCostCirculationParams {
-    int N;
-    // from, to, capacity, cost
-    std::list<std::tuple<int, int, int, int>> EW;
-    int minCost;
-};
-
 struct MinCostFlowParams {
     int N;
     // from, to, capacity, cost
@@ -33,20 +19,6 @@ struct MinCostFlowParams {
     std::unordered_map<int, int> excess;
     int minCost;
 };
-
-struct MinCostFlowParamsST {
-    int N;
-    // from, to, capacity, cost
-    std::list<std::tuple<int, int, int, int>> EW;
-    int s, t;
-    int flow;
-};
-
-class SuccessiveApproxMCCTest
-    : public testing::TestWithParam<MinCostCirculationParams> { };
-
-class SuccessiveApproxMCFlowTest
-    : public testing::TestWithParam<MinCostFlowParams> { };
 
 Koala::MCFlowNetwork getInstance(MinCostFlowParams const& params) {
     std::list<std::tuple<int, int, int>> edges;
@@ -56,7 +28,7 @@ Koala::MCFlowNetwork getInstance(MinCostFlowParams const& params) {
         params.excess.begin(), params.excess.end());
 
     for (auto [u, v, capacity, cost] : params.EW) {
-        costs[{u, v}] = cost;
+        costs[{static_cast<NetworKit::node>(u), static_cast<NetworKit::node>(v)}] = cost;
         edges.push_back({u, v, capacity});
     }
     NetworKit::Graph G = build_graph(params.N, edges, true, false);
@@ -179,10 +151,6 @@ TEST_P(EdmondsKarpTest, test) {
     auto algorithm = Koala::EdmondsKarpMCF(network);
     algorithm.run();
 
-    network.getGraph().forEdges([&](NetworKit::node u, NetworKit::node v) {
-        DBG(u << ' ' << v << " -> " << algorithm.getFlow({u, v}) << '\n');
-    });
-
     EXPECT_EQ(algorithm.getMinCost(), parameters.minCost);
 }
 
@@ -198,17 +166,11 @@ TEST_P(OrlinTest, test) {
     auto algorithm = Koala::OrlinMCF(network);
     algorithm.run();
 
-    network.getGraph().forEdges([&](NetworKit::node u, NetworKit::node v) {
-        DBG(u << ' ' << v << " -> " << algorithm.getFlow({u, v}) << '\n');
-    });
-
     EXPECT_EQ(algorithm.getMinCost(), parameters.minCost);
 }
 
 INSTANTIATE_TEST_SUITE_P(test_example_orlin, OrlinTest, testing::ValuesIn(basic_tests));
-INSTANTIATE_TEST_CASE_P(test_complex_orlin, OrlinTest, testing::ValuesIn(complex_tests));
-
-
+INSTANTIATE_TEST_SUITE_P(test_complex_orlin, OrlinTest, testing::ValuesIn(complex_tests));
 
 class SuccessiveApproxTest
     : public testing::TestWithParam<MinCostFlowParams> { };
@@ -218,10 +180,6 @@ TEST_P(SuccessiveApproxTest, test) {
     auto network = getInstance(parameters);
     auto algorithm = Koala::SuccessiveApproxMCC(network);
     algorithm.run();
-
-    network.getGraph().forEdges([&](NetworKit::node u, NetworKit::node v) {
-        DBG(u << ' ' << v << " -> " << algorithm.getFlow({u, v}) << '\n');
-    });
 
     EXPECT_EQ(algorithm.getMinCost(), parameters.minCost);
 }

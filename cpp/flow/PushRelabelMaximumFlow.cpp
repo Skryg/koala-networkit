@@ -86,7 +86,7 @@ void PushRelabelMaximumFlow::run() {
     hasRun = true;
 }
 
-int getFlow(const std::pair<NetworKit::node, NetworKit::node>& edge) const {
+int PushRelabelMaximumFlow::getFlow(const std::pair<NetworKit::node, NetworKit::node>& edge) const {
     const NetworKit::Edge e(edge.first, edge.second);
     if (!flow.count(e)) {
         throw std::invalid_argument("Edge does not exist in the graph");

@@ -27,7 +27,7 @@ namespace Koala {
 
 int64 OrlinMCF::getFlow(const NetworKit::Edge& edge) {
     if (maxflow.has_value()) {
-        return maxflow->get_flow({edge.u, edge.v});
+        return maxflow->getFlow({edge.u, edge.v});
     }
     return 0;
 }
@@ -357,10 +357,10 @@ void OrlinMCF::compute_final_flows() {
     DBG(maxflow->getFlowSize() << '\n');
     min_cost = 0;
     maxflow_graph.forEdges([&](node u, node v) {
-        DBG("flow " << u << ' ' << v  << ": " << maxflow->get_flow({u, v}) << '\n');
+        DBG("flow " << u << ' ' << v  << ": " << maxflow->getFlow({u, v}) << '\n');
         if (u == s || v == t) return;
 
-        min_cost += network.cost[{u, v}] * maxflow->get_flow({u, v});
+        min_cost += network.cost[{u, v}] * maxflow->getFlow({u, v});
     });
 }
 

@@ -6,7 +6,6 @@ koala_add_module(flow
     GoldbergTarjanPushRelabelMaximumFlow.cpp
     MalhotraKumarMaheshwariFlow.cpp
     BoykovKolmogorovMaximumFlow.cpp
-    MinimumCostFlow.cpp
     minimum_cost_flow/MCFlowNetwork.cpp
     minimum_cost_flow/EdmondsKarpMCF.cpp
     minimum_cost_flow/OrlinMCF.cpp
