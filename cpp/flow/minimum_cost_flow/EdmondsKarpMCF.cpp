@@ -1,18 +1,9 @@
 #include <flow/minimum_cost_flow/EdmondsKarpMCF.hpp>
 
 #include <climits>
-#include <iostream>
 #include <set>
 #include <stack>
 #include <vector>
-
-// #define DEBUG_DUMP
-
-#ifdef DEBUG_DUMP
-#define DBG(x) std::cerr << x
-#else
-#define DBG(x)
-#endif
 
 using node = NetworKit::node;
 using edgeid = NetworKit::edgeid;
@@ -54,13 +45,6 @@ void EdmondsKarpMCF::initialize() {
             ++ptr;
         });
     });
-
-
-    for (int i = 0; i < edges.size(); ++i) {
-        DBG(i << " -> from: " << edges[i].from
-            << " to: " << edges[i].to << " capacity: " << edges[i].capacity
-            << " cost: " << edges[i].cost << '\n');
-    }
 }
 
 std::vector<std::pair<int64_t, uint64_t>> EdmondsKarpMCF::dijkstra(uint32_t source, int64_t delta) {
@@ -69,7 +53,6 @@ std::vector<std::pair<int64_t, uint64_t>> EdmondsKarpMCF::dijkstra(uint32_t sour
     dist[source] = {0, 0};
     pq.insert({0, source});
     std::vector<bool> visited(n, false);
-    DBG("Dijkstra\n");
     while (!pq.empty()) {
         auto [d, u] = *pq.begin();
         pq.erase(pq.begin());
@@ -101,12 +84,9 @@ void EdmondsKarpMCF::send(uint64_t edgeid, int64_t value) {
 
 void EdmondsKarpMCF::augmenting_phase(uint32_t s, uint32_t t, int64_t delta) {
     auto dist = dijkstra(s, delta);
-    DBG("AUGMENTING delta: " << delta << " From: " << s << " To: " << t <<  "\n");
     uint32_t ptr = t;
     while (s != ptr) {
         auto [_, edgeid] = dist[ptr];
-        DBG("From: " << edges[edgeid].from << " To: " << edges[edgeid].to
-            << " Residual cap: " << edges[edgeid].capacity - edges[edgeid].flow << '\n');
         send(edgeid, delta);
         ptr = edges[edgeid].from;
     }
@@ -154,10 +134,7 @@ void EdmondsKarpMCF::run_impl() {
     initialize();
 
     int64_t delta{1};
-    int i = 0;
-    DBG("excess\n");
     for (auto e : excess) {
-        DBG(i++ <<": " << e <<'\n');
         while (delta < e) {
             delta <<= 1;
         }

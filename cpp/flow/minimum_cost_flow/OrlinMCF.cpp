@@ -10,14 +10,6 @@
 
 #include <flow/KingRaoTarjanMaximumFlow.hpp>
 
-// #define DEBUG_DUMP
-
-#ifdef DEBUG_DUMP
-#define DBG(x) std::cerr << x
-#else
-#define DBG(x)
-#endif
-
 using edgeid = NetworKit::edgeid;
 using node = NetworKit::node;
 using Edge = NetworKit::Edge;
@@ -50,14 +42,12 @@ void OrlinMCF::initialize() {
     dist.assign(max_nodeid, {std::numeric_limits<int64_t>::max(), 0});
     visited.assign(max_nodeid, false);
     edges.assign(2 * graph.numberOfEdges(), Edge());
-    DBG("size" << edges.size() << '\n');
     int ptr = 0;
 
     neigh_list.assign(max_nodeid, std::vector<uint32_t>());
 
     graph.forNodes([&](node u) {
         graph.forNeighborsOf(u, [&](node v) {
-            DBG(u << ' ' << v << ' ' << 2*ptr << '\n');
             uint32_t from = static_cast<uint32_t>(u);
             uint32_t to = static_cast<uint32_t>(v);
             int64 cost = network.cost[{u, v}];
@@ -170,7 +160,6 @@ void OrlinMCF::uncontract_nodes_potential() {
 }
 
 void OrlinMCF::augmenting_phase(uint32_t s, uint32_t t, int64_t delta) {
-    DBG("augmenting from " << s << " to " << t << " value " << delta << '\n');
     dijkstra(s, delta);
     uint32_t ptr = t;
     while (ptr != s) {
@@ -196,7 +185,6 @@ void OrlinMCF::run_impl() {
 
     while (is_imbalanced()) {
         delta = std::min(delta, find_optimal_delta(delta));
-        DBG(delta << '\n');
         contraction_phase(delta);
 
         auto [uncap_begin, uncap_end] = uncapacitated_nodes_bounds;
@@ -251,8 +239,6 @@ void OrlinMCF::run_impl() {
     uncontract_nodes_potential();
     compute_final_flows();
 }
-
-
 
 void OrlinMCF::dijkstra(uint32_t source, int64_t delta) {
     std::priority_queue<std::pair<int64_t, uint32_t>,
@@ -331,7 +317,6 @@ void OrlinMCF::compute_final_flows() {
     auto& orignal_graph = network.getGraph();
 
     NetworKit::Graph maxflow_graph(max_nodeid, true, true);
-    DBG("positive edges\n");
     original_graph.forEdges([&](node u, node v) {
         auto cost = network.cost[{u, v}];
 
@@ -344,7 +329,6 @@ void OrlinMCF::compute_final_flows() {
     node s = maxflow_graph.addNode();
     node t = maxflow_graph.addNode();
 
-    DBG("added edges\n");
     for (auto [key, value] : network.excess) {
         if (value > 0) {
             maxflow_graph.addEdge(s, key, value);
@@ -354,12 +338,9 @@ void OrlinMCF::compute_final_flows() {
     }
     maxflow.emplace(maxflow_graph, s, t);
     maxflow->run();
-    DBG(maxflow->getFlowSize() << '\n');
     min_cost = 0;
     maxflow_graph.forEdges([&](node u, node v) {
-        DBG("flow " << u << ' ' << v  << ": " << maxflow->getFlow({u, v}) << '\n');
         if (u == s || v == t) return;
-
         min_cost += network.cost[{u, v}] * maxflow->getFlow({u, v});
     });
 }

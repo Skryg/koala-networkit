@@ -4,14 +4,6 @@
 #include <limits>
 #include <unordered_map>
 
-// #define DEBUG_DUMP
-
-#ifdef DEBUG_DUMP
-#define DBG(x) std::cerr << x
-#else
-#define DBG(x)
-#endif
-
 using node = NetworKit::node;
 using Edge = NetworKit::Edge;
 using Graph = NetworKit:: Graph;
@@ -44,7 +36,6 @@ MCFlowNetwork::MCFlowNetwork(
     excess = ex;
 }
 
-
 Graph& MCFlowNetwork::getGraph() {
     return graph;
 }
@@ -68,11 +59,7 @@ void MCFlowNetwork::makeConnected() {
         maxCost = std::max(maxCost, (int64)std::abs(cost));
     }
 
-    DBG("max cost: " << maxCost << '\n');
-
     maxCost *=  graph.numberOfEdges() + 1;
-
-    DBG("after multiplying: " << maxCost << '\n');
 
     NetworKit::node sx = graph.addNode();
     NetworKit::node sx2 = graph.addNode();
