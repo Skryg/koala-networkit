@@ -1,0 +1,434 @@
+@book{cormen,
+  title={Introduction to Algorithms},
+  author={Cormen, Thomas and Leiserson, Charles and Rivest, Ronald and Stein, Clifford},
+  year = {2009},
+  publisher={The MIT Press}
+}
+
+@book{ahuja1993network,
+  author = {Ahuja, Ravindra and Magnanti, Thomas and Orlin, James},
+  publisher = {Prentice hall},
+  title = {Network Flows: Theory, Algorithms, and Applications},
+  year = {1993}
+}
+
+@article{orlin1993faster,
+journal={Operations Research},
+author={Orlin, James},
+title={A Faster Strongly Polynomial Minimum Cost Flow Algorithm},
+year={1993},
+month={4},
+pages={338-350},
+volume={41},
+number={2},
+abstract={In this paper, we present a new strongly polynomial time algorithm for the minimum cost flow problem, based on a refinement of the Edmonds-Karp scaling technique. Our algorithm solves the uncapacitated minimum cost flow problem as a sequence of O ( n log n ) shortest path problems on networks with n nodes and m arcs and runs in O ( n log n ( m + n log n )) time. Using a standard transformation, this approach yields an O ( m log n ( m + n log n )) algorithm for the capacitated minimum cost flow problem. This algorithm improves the best previous strongly polynomial time algorithm, due to Z. Galil and E. Tardos, by a factor of n 2 / m . Our algorithm for the capacitated minimum cost flow problem is even more efficient if the number of arcs with finite upper bounds, say m â€², is much less than m . In this case, the running time of the algorithm is O (( m â€² + n ) log n ( m + n log n )).},
+keywords={networks/graphs; flow algorithms: a faster strongly polynomial minimum cost flow algorithm},
+doi={10.1287/opre.41.2.338},
+url={https://ideas.repec.org/a/inm/oropre/v41y1993i2p338-350.html},
+}
+
+@article{iri1960,
+  title={A new method of solving transportation-network problems},
+  author={Iri, Masao},
+  journal={Journal of the Operations Research Society of Japan},
+  volume={3},
+  number={1},
+  pages={2},
+  year={1960}
+}
+
+@article{busacker1960,
+  title={A procedure for determining a family of minimum-cost network flow patterns},
+  author={Busacker, Robert and Gowen, Paul},
+  journal={(No Title)},
+  year={1960},
+  publisher={Defense Technical Information Center}
+}
+
+@article{minty1960,
+  title={Monotone networks},
+  author={Minty, George},
+  journal={Proceedings of the Royal Society of London. Series A. Mathematical and Physical Sciences},
+  volume={257},
+  number={1289},
+  pages={194--212},
+  year={1960},
+  publisher={The Royal Society London}
+}
+
+@article{fulkerson1960,
+  title={An out-of-kilter method for minimal-cost flow problems},
+  author={Fulkerson, Delbert},
+  journal={Journal of the Society for Industrial and Applied Mathematics},
+  volume={9},
+  number={1},
+  pages={18--27},
+  year={1961},
+  publisher={SIAM}
+}
+
+@book{ford1962,
+  title={Flows in Networks},
+  author={Ford, Lester and Fulkerson, Delbert},
+  year={2015},
+  publisher={Princeton University Press}
+}
+
+@article{klein1967,
+  title={A primal method for minimal cost flows with applications to the assignment and transportation problems},
+  author={Klein, Morton},
+  journal={Management Science},
+  volume={14},
+  number={3},
+  pages={205--220},
+  year={1967},
+  publisher={INFORMS}
+}
+
+@article{edmonds1969,
+  title={Theoretical improvements in algorithmic efficiency for network flow problems},
+  author={Edmonds, Jack and Karp, Richard},
+  journal={Journal of the ACM (JACM)},
+  volume={19},
+  number={2},
+  pages={248--264},
+  year={1972},
+  publisher={ACM New York, NY, USA}
+}
+
+@article{edmonds1972,
+  title={Theoretical improvements in algorithmic efficiency for network flow problems},
+  author={Edmonds, Jack and Karp, Richard},
+  journal={Journal of the ACM (JACM)},
+  volume={19},
+  number={2},
+  pages={248--264},
+  year={1972},
+  publisher={ACM New York, NY, USA}
+}
+
+@book{rock1980,
+  title={Discrete Structures and Algorithms: Proceedings of the Workshop WG 79, 5. Conference on Graphtheoret. Concepts in Computer Science, June 21-23, 1979, Berlin (West), Germany},
+  author={Pape, Uwe},
+  year={1980},
+  publisher={Hanser}
+}
+
+@techreport{orlin1984,
+  title={Genuinely polynomial simplex and non-simplex algorithms for the minimum cost flow problem},
+  author={Orlin, James},
+  year={1984},
+  institution={Massachusetts Institute of Technology},
+  address={Cambridge, Mass.}
+}
+
+@article{fujishige1984,
+  title={A capacity-rounding algorithm for the minimum-cost circulation problem: A dual framework of the Tardos algorithm},
+  author={Fujishige, Satoru},
+  journal={Mathematical Programming},
+  volume={35},
+  number={3},
+  pages={298--308},
+  year={1986},
+  publisher={Springer}
+}
+
+@article{tardos1985,
+  title={A strongly polynomial minimum cost circulation algorithm},
+  author={Tardos, {\'E}va},
+  journal={Combinatorica},
+  volume={5},
+  number={3},
+  pages={247--255},
+  year={1985},
+  publisher={Springer}
+}
+
+@article{galil1986,
+author = {Galil, Zvi and Tardos, \'{E}va},
+title = {An O(n2(m + Nlog n)log n) min-cost flow algorithm},
+year = {1988},
+issue_date = {April 1988},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {35},
+number = {2},
+issn = {0004-5411},
+url = {https://doi.org/10.1145/42282.214090},
+doi = {10.1145/42282.214090},
+abstract = {The minimum-cost flow problem is: Given a network with n vertices and m edges, find a maximum flow of minimum cost. Many network problems are easily reducible to this problem. A polynomial-time algorithm for the problem has been known for some time, but only recently a strongly polynomial algorithm was discovered. In this paper an O(n2(m + n log n)log n) algorithm is designed. The previous best algorithm, due to Fujishige and Orlin, had an O(m2(m + nlogn)logn) time bound. Thus, for dense graphs an improvement of two orders of magnitude is obtained.The algorithm in this paper is based on Fujishige's algorithm (which is based on Tardos's algorithm). Fujishige's algorithm consists of up to m iterations, each consisting of O(m log n) steps. Each step solves a single source shortest path problem with nonnegative edge lengths. This algorithm is modified in order to make an improved analysis possible. The new algorithm may still consist of up to m iterations, and an iteration may still consist of up to O(mlogn) steps, but it can still be shown that the total number of steps is bounded by O(n2logn. The improvement is due to a new technique that relates the time spent to the progress achieved.},
+journal = {J. ACM},
+month = apr,
+pages = {374–386},
+numpages = {13}
+}
+
+@article{gabow1987,
+  title={Faster scaling algorithms for network problems},
+  author={Gabow, Harold and Tarjan, Robert},
+  journal={SIAM Journal on Computing},
+  volume={18},
+  number={5},
+  pages={1013--1036},
+  year={1989},
+  publisher={SIAM}
+}
+
+@article{goldberg-MY,
+author = {Goldberg, Andrew and Tarjan, Robert},
+title = {Finding Minimum-Cost Circulations by Successive Approximation},
+year = {1990},
+issue_date = {August 1990},
+publisher = {INFORMS},
+address = {Linthicum, MD, USA},
+volume = {15},
+number = {3},
+issn = {0364-765X},
+url = {https://doi.org/10.1287/moor.15.3.430},
+doi = {10.1287/moor.15.3.430},
+abstract = {We develop a new approach to solving minimum-cost circulation problems. Our approach combines methods for solving the maximum flow problem with successive approximation techniques based on cost scaling. We measure the accuracy of a solution by the amount that the complementary slackness conditions are violated.We propose a simple minimum-cost circulation algorithm, one version of which runs in On3lognC time on an n-vertex network with integer arc costs of absolute value at most C. By incorporating sophisticated data structures into the algorithm, we obtain a time bound of Onm logn2/mlognC on a network with m arcs. A slightly different use of our approach shows that a minimum-cost circulation can be computed by solving a sequence of On lognC blocking flow problems. A corollary of this result is an On2log nlognC-time, m-processor parallel minimum-cost circulation algorithm. Our approach also yields strongly polynomial minimum-cost circulation algorithms.Our results provide evidence that the minimum-cost circulation problem is not much harder than the maximum flow problem. We believe that a suitable implementation of our method will perform extremely well in practice.},
+journal = {Math. Oper. Res.},
+month = aug,
+pages = {430–466},
+numpages = {37},
+keywords = {algorithms, computational complexity, minimum-cost circulation, networks}
+}
+
+
+@article{ahuja-MY,
+  title={Finding minimum-cost flows by double scaling},
+  author={Ahuja, Ravindra and Goldberg, Andrew and Orlin, James and Tarjan, Robert},
+  journal={Mathematical programming},
+  volume={53},
+  number={1},
+  pages={243--266},
+  year={1992},
+  publisher={Springer}
+}
+
+@article{chen2022,
+  title={Maximum flow and minimum-cost flow in almost-linear time},
+  author={Chen, Li and Kyng, Rasmus and Liu, Yang and Peng, Richard and Probst Gutenberg, Maximilian and Sachdeva, Sushant},
+  journal={Journal of the ACM},
+  volume={72},
+  number={3},
+  pages={1--103},
+  year={2025},
+  publisher={ACM New York, NY}
+}
+
+@inproceedings{daitch2008,
+  author = {Daitch, Samuel and Spielman, Daniel},
+  title = {Faster approximate lossy generalized flow via interior point algorithms},
+  booktitle = {Proceedings of the 40th Annual ACM Symposium on Theory of Computing},
+  year = {2008},
+  isbn = {9781605580470},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/1374376.1374441},
+  doi = {10.1145/1374376.1374441},
+  pages = {451--460},
+  numpages = {10},
+  keywords = {approximation algorithms, interior-point algorithms, linear programming, network flows},
+  location = {Victoria, British Columbia, Canada},
+  series = {STOC '08}
+}
+
+@inproceedings{lee2014,
+  author={Lee, Yin Tat and Sidford, Aaron},
+  booktitle={2014 IEEE 55th Annual Symposium on Foundations of Computer Science}, 
+  title={Path Finding Methods for Linear Programming: Solving Linear Programs in Õ(vrank) Iterations and Faster Algorithms for Maximum Flow}, 
+  year={2014},
+  volume={},
+  number={},
+  pages={424-433},
+  keywords={Linear systems;Standards;Linear programming;Convergence;Approximation methods;Polynomials;Laplace equations;linear program;maximum flow;interior point},
+  doi={10.1109/FOCS.2014.52}}
+
+@inproceedings{brand2021,
+author = {van den Brand, Jan and Lee, Yin Tat and Liu, Yang and Saranurak, Thatchaphol and Sidford, Aaron and Song, Zhao and Wang, Di},
+title = {Minimum cost flows, MDPs, and l1-regression in nearly linear time for dense instances},
+year = {2021},
+isbn = {9781450380539},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3406325.3451108},
+doi = {10.1145/3406325.3451108},
+abstract = {In this paper we provide new randomized algorithms with improved runtimes for solving linear programs with two-sided constraints. In the special case of the minimum cost flow problem on n-vertex m-edge graphs with integer polynomially-bounded costs and capacities we obtain a randomized method which solves the problem in \~{O}(m + n1.5) time. This improves upon the previous best runtime of \~{O}(m √n) [Lee-Sidford’14] and, in the special case of unit-capacity maximum flow, improves upon the previous best runtimes of m4/3 + o(1) [Liu-Sidford’20, Kathuria’20] and \~{O}(m √n) [Lee-Sidford’14] for sufficiently dense graphs. In the case of ℓ1-regression in a matrix with n-columns and m-rows we obtain a randomized method which computes an є-approximate solution in \~{O}(mn + n2.5) time. This yields a randomized method which computes an є-optimal policy of a discounted Markov Decision Process with S states and, A actions per state in time \~{O}(S2 A + S2.5). These methods improve upon the previous best runtimes of methods which depend polylogarithmically on problem parameters, which were \~{O}(mn1.5) [Lee-Sidford’15] and \~{O}(S2.5 A) [Lee-Sidford’14, Sidford-Wang-Wu-Ye’18] respectively. To obtain this result we introduce two new algorithmic tools of possible independent interest. First, we design a new general interior point method for solving linear programs with two sided constraints which combines techniques from [Lee-Song-Zhang’19, Brand et al.’20] to obtain a robust stochastic method with iteration count nearly the square root of the smaller dimension. Second, to implement this method we provide dynamic data structures for efficiently maintaining approximations to variants of Lewis-weights, a fundamental importance measure for matrices which generalize leverage scores and effective resistances.},
+booktitle = {Proceedings of the 53rd Annual ACM SIGACT Symposium on Theory of Computing},
+pages = {859–869},
+numpages = {11},
+keywords = {Data Structure, Interior Point Method, Linear Program},
+location = {Virtual, Italy},
+series = {STOC 2021}
+}
+
+@misc{axiotis2021,
+      title={Faster Sparse Minimum Cost Flow by Electrical Flow Localization}, 
+      author={Kyriakos Axiotis and Aleksander Mądry and Adrian Vladu},
+      year={2021},
+      eprint={2111.10368},
+      archivePrefix={arXiv},
+      primaryClass={cs.DS},
+      url={https://arxiv.org/abs/2111.10368}, 
+}
+
+@inproceedings{brand2022,
+author = {van den Brand, Jan and Gao, Yu and Jambulapati, Arun and Lee, Yin Tat and Liu, Yang and Peng, Richard and Sidford, Aaron},
+title = {Faster maxflow via improved dynamic spectral vertex sparsifiers},
+year = {2022},
+isbn = {9781450392648},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3519935.3520068},
+doi = {10.1145/3519935.3520068},
+abstract = {We make several advances broadly related to the maintenance of electrical flows in weighted graphs undergoing dynamic resistance updates, including: (1) More efficient dynamic spectral vertex sparsification, achieved by faster length estimation of random walks in weighted graphs using Morris counters [Morris 1978, Nelson-Yu 2020]. (2) A direct reduction from detecting edges with large energy in dynamic electric flows to dynamic spectral vertex sparsifiers. (3) A procedure for turning algorithms for estimating a sequence of vectors under updates from an oblivious adversary to one that tolerates adaptive adversaries via the Gaussian-mechanism from differential privacy. Combining these pieces with modifications to prior robust interior point frameworks gives an algorithm that on graphs with m edges computes a mincost flow with edge costs and capacities in [1, U] in time O(m3/2−1/58 log2 U). In prior and independent work, [Axiotis-M\k{a}dry-Vladu FOCS 2021] also obtained an improved algorithm for sparse mincost flows on capacitated graphs. Our algorithm implies a O(m3/2−1/58 logU) time maxflow algorithm, improving over the O(m3/2−1/328logU) time maxflow algorithm of [Gao-Liu-Peng FOCS 2021].},
+booktitle = {Proceedings of the 54th Annual ACM SIGACT Symposium on Theory of Computing},
+pages = {543–556},
+numpages = {14},
+keywords = {Dynamic Effective Resistance, Interior Point Methods, Maximum Flow},
+location = {Rome, Italy},
+series = {STOC 2022}
+}
+
+@book{williamson2019,
+ address = {New York, NY, USA},
+ author = {Williamson, David},
+ publisher = {Cambridge University Press},
+ title = {Network Flow Algorithms},
+ year = {2019}
+}
+
+@article{fredman1987,
+author = {Fredman, Michael and Tarjan, Robert},
+title = {Fibonacci heaps and their uses in improved network optimization algorithms},
+year = {1987},
+issue_date = {July 1987},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {34},
+number = {3},
+issn = {0004-5411},
+url = {https://doi.org/10.1145/28869.28874},
+doi = {10.1145/28869.28874},
+abstract = {In this paper we develop a new data structure for implementing heaps (priority queues). Our structure, Fibonacci heaps (abbreviated F-heaps), extends the binomial queues proposed by Vuillemin and studied further by Brown. F-heaps support arbitrary deletion from an n-item heap in O(log n) amortized time and all other standard heap operations in O(1) amortized time. Using F-heaps we are able to obtain improved running times for several network optimization algorithms. In particular, we obtain the following worst-case bounds, where n is the number of vertices and m the number of edges in the problem graph: O(n log n + m) for the single-source shortest path problem with nonnegative edge lengths, improved from O(mlog(m/n+2)n);  O(n2log n + nm) for the all-pairs shortest path problem, improved from O(nm log(m/n+2)n);  O(n2log n + nm) for the assignment problem (weighted bipartite matching), improved from O(nmlog(m/n+2)n); O(mβ(m, n)) for the minimum spanning tree problem, improved from O(mlog log(m/n+2)n); where β(m, n) = min {i | log(i)n ≤ m/n}. Note that β(m, n) ≤ log*n if m ≥ n.  Of these results, the improved bound for minimum spanning trees is the most striking, although all the results give asymptotic improvements for graphs of appropriate densities.},
+journal = {J. ACM},
+month = jul,
+pages = {596–615},
+numpages = {20}
+}
+
+@article{wegmuller2002,
+author = {Wegmüller, Urs and Strozzi, Tazio and Wiesmann, Andreas},
+year = {2002},
+month = {01},
+pages = {4-6},
+title = {Processing strategies for phase unwrapping for InSAR applications},
+journal = {Proceedings EUSAR 2002, Cologne}
+}
+
+@article{padfield2011,
+title = {Coupled minimum-cost flow cell tracking for high-throughput quantitative analysis},
+journal = {Medical Image Analysis},
+volume = {15},
+number = {4},
+pages = {650-668},
+year = {2011},
+note = {Special section on IPMI 2009},
+issn = {1361-8415},
+doi = {https://doi.org/10.1016/j.media.2010.07.006},
+url = {https://www.sciencedirect.com/science/article/pii/S1361841510000988},
+author = {Dirk Padfield and Jens Rittscher and Badrinath Roysam},
+keywords = {Cell analysis, Tracking, Segmentation, Minimum-cost flow, Wavelets},
+}
+
+@article{algorithms-survey,
+author = {Cruz-Mejía, Oliverio and Letchford, Adam},
+title = {A survey on exact algorithms for the maximum flow and minimum-cost flow problems},
+journal = {Networks},
+volume = {82},
+number = {2},
+pages = {167-176},
+keywords = {combinatorial optimization, network flows},
+doi = {https://doi.org/10.1002/net.22169},
+url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/net.22169},
+eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/net.22169},
+abstract = {Abstract Network flow problems form an important and much-studied family of combinatorial optimization problems, with a huge array of practical applications. Two network flow problems in particular have received a great deal of attention: the maximum flow and minimum-cost flow problems. We review the progress that has been made on exact solution algorithms for these two problems, with an emphasis on worst-case running times.},
+year = {2023}
+}
+
+@inproceedings{krile2004,
+  author = {Krile, Srecko},
+  title = {Application of the minimum cost flow problem in container shipping},
+  booktitle = {Proceedings of the 46th International Symposium Electronics in Marine (ELMAR)},
+  year = {2004},
+  month = {07},
+  pages = {466--471},
+  isbn = {953-7044-02-5},
+  doi = {10.1109/ELMAR.2004.1356421}
+}
+
+@article{alphafold-db,
+title = {AlphaFold Protein Structure Database and 3D-Beacons: New Data and Capabilities},
+journal = {Journal of Molecular Biology},
+volume = {437},
+number = {15},
+pages = {168967},
+year = {2025},
+note = {Computation Resources for Molecular Biology},
+issn = {0022-2836},
+doi = {https://doi.org/10.1016/j.jmb.2025.168967},
+url = {https://www.sciencedirect.com/science/article/pii/S0022283625000336},
+author = {Jennifer Fleming and Paulyna Magana and Sreenath Nair and Maxim Tsenkov and Damian Bertoni and Ivanna Pidruchna and Marcelo Querino {Lima Afonso} and Adam Midlik and Urmila Paramval and Augustin Žídek and Agata Laydon and Oleg Kovalevskiy and Joshua Pan and Jun Cheng and Žiga Avsec and Clare Bycroft and Lai Hong Wong and Meera Last and Milot Mirdita and Martin Steinegger and Pushmeet Kohli and Mihály Váradi and Sameer Velankar},
+keywords = {AlphaFold, Alphamissense, Annotations, Foldseek, Training},
+abstract = {The AlphaFold Protein Structure Database (https://alphafold.ebi.ac.uk/) has made significant strides in enhancing its utility and accessibility for the life science research community. The recent integration of AlphaMissense predictions enables access to the pathogenicity of human protein missense variants, with an innovative and interactive heatmap and 3D visualisation that display variant data at the residue level. Users can now toggle between structure model quality (pLDDT) and average pathogenicity scores, providing insights into the implications of specific residue changes. The Foldseek integration offers a rapid and accurate method for protein structure searches and comparisons. Bulk data download options further facilitate comprehensive data analysis and integration with other computational tools. The 3D-Beacons framework (https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/) has also been enhanced with detailed annotation endpoints (such as AlphaMissense data) and integrates LevyLab’s dataset of homomeric AlphaFold 2 models. These advancements significantly improve the functionality and accessibility of these resources, enabling discoveries using structure data.}
+}
+
+@article{p2rank,
+  author  = {Kriv{\'{a}}k, Radoslav and Hoksza, David},
+  title   = {P2Rank: machine learning based tool for rapid and accurate prediction of ligand binding sites from protein structure},
+  journal = {Journal of Cheminformatics},
+  year    = {2018},
+  volume  = {10},
+  number  = {1},
+  pages   = {39},
+  doi     = {10.1186/s13321-018-0285-8}
+}
+@article{bellman1958routing,
+  title={On a routing problem},
+  author={Bellman, Richard},
+  journal={Quarterly of Applied Mathematics},
+  volume={16},
+  number={1},
+  pages={87--90},
+  year={1958},
+  publisher={American Mathematical Society}
+}
+
+@article{netgen,
+  author  = {Klingman, Darwin and Napier, Albert and Stutz, Joel},
+  title   = {NETGEN: A Program for Generating Large Scale Capacitated Assignment, Transportation, and Minimum Cost Flow Network Problems},
+  journal = {Management Science},
+  year    = {1974},
+  volume  = {20},
+  pages   = {814--821},
+  doi     = {10.1287/mnsc.20.5.814}
+}
+
+@techreport{gridgen,
+  author      = {Lee, Hau-Wen and Orlin, James},
+  title       = {{GRIDGEN}: A Program for Generating Grid Network Problems},
+  institution = {Massachusetts Institute of Technology, Operations Research Center},
+  year        = {1993},
+  address     = {Cambridge, MA}
+}
+
+@dataset{bonnmcf,
+  author    = {Held, Stephan},
+  publisher = {bonndata},
+  title     = {{Large Benchmarks for the Minimum-Cost Flow Problem}},
+  year      = {2024},
+  version   = {V1},
+  doi       = {10.60507/FK2/5IKK7K},
+  url       = {https://doi.org/10.60507/FK2/5IKK7K}
+}
