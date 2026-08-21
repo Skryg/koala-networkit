@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include <flow/KingRaoTarjanMaximumFlow.hpp>
+#include <flow/GoldbergTarjanPushRelabelMaximumFlow.hpp>
 
 using edgeid = NetworKit::edgeid;
 using node = NetworKit::node;
